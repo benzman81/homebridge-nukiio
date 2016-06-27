@@ -57,7 +57,7 @@ NukiAccessory.prototype.getState = function(callback) {
       }
     }
     else {
-      this.log("Error getting state (status code %s): %s", response.statusCode, err);
+      this.log("Error '%s' getting lock state. Response: %s", err, body);
       callback(err);
     }
   }.bind(this));
