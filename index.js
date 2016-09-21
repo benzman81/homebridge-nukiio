@@ -14,6 +14,14 @@ function NukiAccessory(log, config) {
   this.apiToken = config["api_token"];
   this.lockID = config["lock_id"];
   this.bridgeUrl = config["bridge_url"];
+  this.lockAction = config["lock_action"];
+  this.unlockAction = config["unlock_action"];
+  if(this.lockAction == null || this.lockAction == "") {
+      this.lockAction = "2";
+  }
+  if(this.unlockAction == null || this.unlockAction == "") {
+      this.unlockAction = "1";
+  }
   
   this.service = new Service.LockMechanism(this.name);
   
@@ -42,7 +50,7 @@ NukiAccessory.prototype.getState = function(callback) {
           var state = json.state;
           this.log("Lock state is %s", state);
           var locked = state == "1" || state == 1 || state == "5" || state == 5;
-          var unlocked = state == "2" || state == 2 || state == "3" || state == 3 || state == "6" || state == 6;
+          var unlocked = state == "2" || state == 2 || state == "3" || state == 3 || state == "4" || state == 4 || state == "6" || state == 6 || state == "7" || state == 7;
           if(locked || unlocked) {
             callback(null, locked);
           }
@@ -64,7 +72,7 @@ NukiAccessory.prototype.getState = function(callback) {
 }
   
 NukiAccessory.prototype.setState = function(state, callback) {
-  var newState = (state == Characteristic.LockTargetState.SECURED) ? "2" : "1";
+  var newState = (state == Characteristic.LockTargetState.SECURED) ? this.lockAction : this.unlockAction;
 
   this.log("Set state to %s", newState);
 
