@@ -1,9 +1,18 @@
+## 0.1.1
+
+Bugfix:
+
+  - Fix variable.
+
 ## 0.1.0
+
+New features:
+
+  - If timeout is reached use the last known state from cache.
 
 Bugfix:
 
   - Use timeout on requests to bridge.
-  - If timeout is reached use the last known state from cache.
 
 ## 0.0.5
 

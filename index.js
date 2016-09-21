@@ -64,7 +64,7 @@ NukiAccessory.prototype.getState = function(callback) {
           this.log("Lock state is %s", state);
           var locked = state == 1 || state == 5;
           var unlocked = state == 2 || state == 3 || state == 4 || state == 6 || state == 7;
-          storage.setItemSync('nuki-lock-state-'+lockId, state);
+          storage.setItemSync('nuki-lock-state-'+this.lockID, state);
           if(locked || unlocked) {
             callback(null, locked);
           }
@@ -80,7 +80,7 @@ NukiAccessory.prototype.getState = function(callback) {
     }
     else if(err && err.code === 'ETIMEDOUT') {
       this.log("Read timeout occured getting current state. This might happen due to long response time of the lock. Using cached state.");
-      var cachedState = storage.getItemSync('nuki-lock-state-'+lockId);
+      var cachedState = storage.getItemSync('nuki-lock-state-'+this.lockID);
       if(!cachedState) {
           cachedState = 1;
       }
@@ -104,7 +104,7 @@ NukiAccessory.prototype.getState = function(callback) {
 NukiAccessory.prototype.setState = function(state, callback) {
   var newState = (state == Characteristic.LockTargetState.SECURED) ? this.lockAction : this.unlockAction;
 
-  storage.setItemSync('nuki-lock-state-'+lockId, newState);
+  storage.setItemSync('nuki-lock-state-'+this.lockID, newState);
   
   this.log("Set state to %s", newState);
 
