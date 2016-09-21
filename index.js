@@ -122,7 +122,6 @@ NukiAccessory.prototype.setState = function(state, callback) {
           
           var currentState = (state == Characteristic.LockTargetState.SECURED) ?
             Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-          
           this.service
             .setCharacteristic(Characteristic.LockCurrentState, currentState);
           
@@ -134,7 +133,11 @@ NukiAccessory.prototype.setState = function(state, callback) {
       }
     }
     else if(err && err.code === 'ETIMEDOUT') {
-      this.log("Read timeout occured setting new state. This might happen due to long response time of the lock.");
+      this.log("Read timeout occured setting new state. This might happen due to long response time of the lock. Assuming that everthing will be fine, so set new state to homekit anyways.");   
+      var currentState = (state == Characteristic.LockTargetState.SECURED) ?
+        Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+      this.service
+        .setCharacteristic(Characteristic.LockCurrentState, currentState);
       callback(null);
     }
     else {

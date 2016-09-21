@@ -1,3 +1,9 @@
+## 0.1.2
+
+Bugfix:
+
+  - Set state to home kit even if a timeout was reached setting state as we can assume that everything went well and nuki is just too slow.
+  
 ## 0.1.1
 
 Bugfix:
