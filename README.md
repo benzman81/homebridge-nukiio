@@ -12,7 +12,8 @@ Example config.json:
             "lock_id": "your-lock-id",
             "api_token" : "your-nuki-api-token",
             "lock_action" : "2",
-            "unlock_action" : "1"
+            "unlock_action" : "1",
+            "request_timeout": 10000
         }
       ]
     }
