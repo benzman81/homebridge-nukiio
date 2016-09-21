@@ -1,3 +1,9 @@
+## 0.0.5
+
+Bugfix:
+
+  - Fixed socket hang up.
+
 ## 0.0.4
 
 New features:

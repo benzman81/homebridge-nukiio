@@ -1,5 +1,10 @@
 var request = require("request");
+var http = require('http');
+var https = require('https');
 var Service, Characteristic;
+
+http.globalAgent.maxSockets = 1;
+https.globalAgent.maxSockets = 1;
 
 module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
