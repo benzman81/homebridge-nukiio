@@ -13,7 +13,7 @@ Example config.json:
             "api_token" : "your-nuki-api-token",
             "lock_action" : "2",
             "unlock_action" : "1",
-            "request_timeout": 10000
+            "request_timeout": 20000
         }
       ]
     }

@@ -34,6 +34,15 @@ function NukiAccessory(log, config) {
   if(this.requestTimeout == null || this.requestTimeout == ""|| this.requestTimeout < 1) {
       this.requestTimeout = 10000;
   }
+  this.maxWaitForStateRequestRunning = this.requestTimeout + 2000;
+  this.locksRunningStateRequests = [];
+  
+  this.removeFromArray = function(arr,elem) {
+    var index = arr.indexOf(elem);
+    if (index >= 0) {
+      arr.splice( index, 1 );
+    }
+  }
   
   this.service = new Service.LockMechanism(this.name);
   
@@ -48,57 +57,84 @@ function NukiAccessory(log, config) {
 }
 
 NukiAccessory.prototype.getState = function(callback) {
-  this.log("Getting current state...");
-  
-  request.get({
-    url: this.bridgeUrl+"/lockState",
-    qs: { nukiId: this.lockID, token: this.apiToken },
-    timeout: this.requestTimeout
-  }, function(err, response, body) {
-    
-    if (!err && response.statusCode == 200) {
-      var json = JSON.parse(body);
-      var success = json.success;
-      if(success == "true" || success == true) {
-          var state = json.state;
-          this.log("Lock state is %s", state);
-          var locked = state == 1 || state == 5;
-          var unlocked = state == 2 || state == 3 || state == 4 || state == 6 || state == 7;
-          storage.setItemSync('nuki-lock-state-'+this.lockID, state);
+    if(this.locksRunningStateRequests.indexOf(lockId) == -1) {
+      this.log("Getting current state via request...");
+      this.locksRunningStateRequests.push(lockId);
+      request.get({
+        url: this.bridgeUrl+"/lockState",
+        qs: { nukiId: this.lockID, token: this.apiToken },
+        timeout: this.requestTimeout
+      }, function(err, response, body) {
+        if (!err && response.statusCode == 200) {
+          var json = JSON.parse(body);
+          var success = json.success;
+          if(success == "true" || success == true) {
+              var state = json.state;
+              this.log("Lock state is %s", state);
+              var locked = state == 1 || state == 5;
+              var unlocked = state == 2 || state == 3 || state == 4 || state == 6 || state == 7;
+              storage.setItemSync('nuki-lock-state-'+this.lockID, state);
+              if(locked || unlocked) {
+                callback(null, locked);
+              }
+              else {
+                this.log("Invalid state for homekit.");
+                callback(new Error("Invalid state for homekit."));
+              }
+          }
+          else {
+            this.log("Getting state was not succesful.");
+            callback(new Error("Getting state was not succesful."));
+          }
+        }
+        else if(err && err.code === 'ETIMEDOUT') {
+          this.log("Read timeout occured getting current state. This might happen due to long response time of the lock. Using cached state.");
+          var cachedState = storage.getItemSync('nuki-lock-state-'+this.lockID);
+          if(!cachedState) {
+            cachedState = 1;
+          }
+          var locked = cachedState == 1 || cachedState == 5;
+          var unlocked = cachedState == 2 || cachedState == 3 || cachedState == 4 || cachedState == 6 || cachedState == 7;
           if(locked || unlocked) {
             callback(null, locked);
           }
           else {
-              this.log("Invalid state for homekit.");
-              callback(new Error("Invalid state for homekit."));
+            this.log("Invalid cached state "+cachedState+" for homekit.");
+            callback(new Error("Invalid cached state "+cachedState+" for homekit."));
           }
-      }
-      else {
-          this.log("Getting state was not succesful.");
-          callback(new Error("Getting state was not succesful."));
-      }
+        }
+        else {
+          this.log("Error '%s' getting lock state. Response: %s", err, body);
+          callback(err);
+        }
+        this.removeFromArray(this.locksRunningStateRequests, lockId);
+      }.bind(this));
     }
-    else if(err && err.code === 'ETIMEDOUT') {
-      this.log("Read timeout occured getting current state. This might happen due to long response time of the lock. Using cached state.");
-      var cachedState = storage.getItemSync('nuki-lock-state-'+this.lockID);
-      if(!cachedState) {
-          cachedState = 1;
-      }
-      var locked = cachedState == 1 || cachedState == 5;
-      var unlocked = cachedState == 2 || cachedState == 3 || cachedState == 4 || cachedState == 6 || cachedState == 7;
-      if(locked || unlocked) {
-        callback(null, locked);
-      }
-      else {
-          this.log("Invalid cached state "+cachedState+" for homekit.");
-          callback(new Error("Invalid cached state "+cachedState+" for homekit."));
-      }
+     else {
+        this.log("Getting current state via cache after running requests...");
+        var start = new Date().getTime();
+        var backgroundJob = (function() { 
+            if(this.locksRunningStateRequests.indexOf(lockId) == -1 || (new Date().getTime() - start) > this.maxWaitForStateRequestRunning) {
+              var cachedState = storage.getItemSync('nuki-lock-state-'+this.lockID);
+              if(!cachedState) {
+                cachedState = 1;
+              }
+              var locked = cachedState == 1 || cachedState == 5;
+              var unlocked = cachedState == 2 || cachedState == 3 || cachedState == 4 || cachedState == 6 || cachedState == 7;
+              if(locked || unlocked) {
+                callback(null, locked);
+              }
+              else {
+                this.log("Invalid cached state "+cachedState+" for homekit.");
+                callback(new Error("Invalid cached state "+cachedState+" for homekit."));
+              }
+            }
+            else {
+                setTimeout(backgroundJob, 1000);
+            }
+        }).bind(this);
+        setTimeout(backgroundJob, 1000);
     }
-    else {
-      this.log("Error '%s' getting lock state. Response: %s", err, body);
-      callback(err);
-    }
-  }.bind(this));
 }
   
 NukiAccessory.prototype.setState = function(state, callback) {

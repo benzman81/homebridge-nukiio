@@ -1,3 +1,9 @@
+## 0.1.3
+
+New features:
+
+  - If a getState request is running for one lock and getState is requested again for this lock, no additional request will be made, it will use the cache set by the running request when this one ends.
+  
 ## 0.1.2
 
 Bugfix:
