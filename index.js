@@ -32,7 +32,7 @@ function NukiAccessory(log, config) {
       this.unlockAction = "1";
   }
   if(this.requestTimeout == null || this.requestTimeout == ""|| this.requestTimeout < 1) {
-      this.requestTimeout = 10000;
+      this.requestTimeout = 20000;
   }
   this.maxWaitForStateRequestRunning = this.requestTimeout + 2000;
   this.locksRunningStateRequests = [];
@@ -57,9 +57,9 @@ function NukiAccessory(log, config) {
 }
 
 NukiAccessory.prototype.getState = function(callback) {
-    if(this.locksRunningStateRequests.indexOf(lockId) == -1) {
+    if(this.locksRunningStateRequests.indexOf(this.lockID) == -1) {
       this.log("Getting current state via request...");
-      this.locksRunningStateRequests.push(lockId);
+      this.locksRunningStateRequests.push(this.lockID);
       request.get({
         url: this.bridgeUrl+"/lockState",
         qs: { nukiId: this.lockID, token: this.apiToken },
@@ -107,14 +107,14 @@ NukiAccessory.prototype.getState = function(callback) {
           this.log("Error '%s' getting lock state. Response: %s", err, body);
           callback(err);
         }
-        this.removeFromArray(this.locksRunningStateRequests, lockId);
+        this.removeFromArray(this.locksRunningStateRequests, this.lockID);
       }.bind(this));
     }
      else {
         this.log("Getting current state via cache after running requests...");
         var start = new Date().getTime();
         var backgroundJob = (function() { 
-            if(this.locksRunningStateRequests.indexOf(lockId) == -1 || (new Date().getTime() - start) > this.maxWaitForStateRequestRunning) {
+            if(this.locksRunningStateRequests.indexOf(this.lockID) == -1 || (new Date().getTime() - start) > this.maxWaitForStateRequestRunning) {
               var cachedState = storage.getItemSync('nuki-lock-state-'+this.lockID);
               if(!cachedState) {
                 cachedState = 1;

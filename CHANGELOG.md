@@ -1,3 +1,9 @@
+## 0.1.4
+
+Bugfix:
+
+  - Fix variable, again.
+
 ## 0.1.3
 
 New features:
