@@ -50,11 +50,11 @@ this.init = function(log, bridgeUrl, apiToken, requestTimeout, cacheDirectory) {
 this.lockState = function(lockId, successfulCallback, failedCallback) {
     this.log("Requesting lock state for lock %s.", lockId);
     if(!this.runningRequest) {
-        var successfulCallbackWrapper = function(json) {
+        var successfulCallbackWrapper = (function(json) {
             var state = json.state;
             storage.setItemSync('nuki-lock-state-'+lockId, state);
             successfulCallback(json);
-        };
+        }).bind(this);
         var failedCallbackWrapper = (function(err) {
             if(err && err.code === 'ETIMEDOUT') {
                 var cachedState = storage.getItemSync('nuki-lock-state-'+lockId);

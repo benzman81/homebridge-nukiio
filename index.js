@@ -75,7 +75,7 @@ NukiAccessory.prototype.getState = function(callback) {
 NukiAccessory.prototype.setState = function(state, callback) {
     var lockAction = (state == Characteristic.LockTargetState.SECURED) ? this.lockAction : this.unlockAction;
 
-    nukibridge.lockState(
+    nukibridge.lockAction(
         this.lockID, 
         lockAction,
         (function(json){

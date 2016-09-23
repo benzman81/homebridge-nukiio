@@ -1,3 +1,9 @@
+## 0.2.3
+
+Bugfix:
+
+  - Fix wrong function call for setting state.
+
 ## 0.2.2
 
 Bugfix:
