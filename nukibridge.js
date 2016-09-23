@@ -116,7 +116,7 @@ this._sendRequest = function(entryPoint, queryObject, successfulCallback, failed
         url: this.bridgeUrl+entryPoint,
         qs: queryObject,
         timeout: this.requestTimeout
-    }, function(err, response, body) {
+    }, (function(err, response, body) {
         this.log("Request to Nuki bridge finished.");
         if (!err && response.statusCode == 200) {
             var json = JSON.parse(body);
@@ -133,7 +133,7 @@ this._sendRequest = function(entryPoint, queryObject, successfulCallback, failed
         }
         this.runningRequest = false;
         this._processNextQueueEntry();
-    }.bind(this));
+    }).bind(this));
 }
 
 this._addToQueue = function(queueEntry) {

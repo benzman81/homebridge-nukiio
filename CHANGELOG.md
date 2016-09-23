@@ -1,3 +1,9 @@
+## 0.2.1
+
+Bugfix:
+
+  - Fix context.
+
 ## 0.2.0
 
 New features:

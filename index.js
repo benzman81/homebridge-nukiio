@@ -50,7 +50,7 @@ NukiAccessory.prototype.getState = function(callback) {
     else {
         nukibridge.lockState(
             this.lockID, 
-            function(json){
+            (function(json){
                 var state = nukibridge.LOCK_STATE_UNDEFINED;
                 if(json) {
                     state = json.state;
@@ -63,11 +63,11 @@ NukiAccessory.prototype.getState = function(callback) {
                     state == nukibridge.LOCK_STATE_MOTOR_BLOCKED || 
                     state == nukibridge.LOCK_STATE_UNDEFINED;
                 callback(null, locked);
-            },
-            function(err){
+            }).bind(this),
+            (function(err){
                 this.log("An error occured requesting lock state.");
                 callback(err);
-            }
+            }).bind(this)
         );
     }
 };
@@ -78,7 +78,7 @@ NukiAccessory.prototype.setState = function(state, callback) {
     nukibridge.lockState(
         this.lockID, 
         lockAction,
-        function(json){
+        (function(json){
             this.log("State change complete.");
 
             var currentState = (state == Characteristic.LockTargetState.SECURED) ?
@@ -87,11 +87,11 @@ NukiAccessory.prototype.setState = function(state, callback) {
                 .setCharacteristic(Characteristic.LockCurrentState, currentState);
 
             callback(null);
-        },
-        function(err){
+        }).bind(this),
+        (function(err){
             this.log("An error occured processing lock action.");
             callback(err);
-        }
+        }).bind(this)
     );
 };
 
