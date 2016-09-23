@@ -1,3 +1,9 @@
+## 0.2.2
+
+Bugfix:
+
+  - Fix context at other position.
+
 ## 0.2.1
 
 Bugfix:
