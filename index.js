@@ -79,13 +79,15 @@ NukiAccessory.prototype.setState = function(state, callback) {
         this.lockID, 
         lockAction,
         (function(json){
+            var newState = Characteristic.LockCurrentState.SECURED;
+            var isDoorLatch = this.lockAction == nukibridge.LOCK_ACTION_UNLATCH && this.lockAction == this.unlockAction;
+            if(!isDoorLatch) {
+                newState = (state == Characteristic.LockTargetState.SECURED) ?
+                    Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+            }
             this.log("State change complete.");
-
-            var currentState = (state == Characteristic.LockTargetState.SECURED) ?
-                Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
             this.service
-                .setCharacteristic(Characteristic.LockCurrentState, currentState);
-
+                .setCharacteristic(Characteristic.LockCurrentState, newState);
             callback(null);
         }).bind(this),
         (function(err){

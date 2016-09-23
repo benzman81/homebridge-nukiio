@@ -1,3 +1,9 @@
+## 0.2.4
+
+Bugfix:
+
+  - Doors with door latches must never change to unlock state.
+
 ## 0.2.3
 
 Bugfix:
