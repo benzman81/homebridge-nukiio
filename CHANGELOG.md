@@ -1,3 +1,16 @@
+## 0.2.0
+
+New features:
+
+  - Support for doors with door latches. If you set "lock_action" and "unlock_action" both to "3" you get an accessory that shows always locked state and always does an unlatch.
+  - You can now set the directory for the local cache.
+  - Major re-work on request handling.
+
+Others:
+
+  - Changed default value of "request_timeout" to 60000 ms.
+  - Clean code.
+
 ## 0.1.4
 
 Bugfix:
