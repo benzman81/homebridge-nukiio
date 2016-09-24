@@ -1,3 +1,10 @@
+## 0.3.1
+
+Bugfix:
+
+  - Less logging.
+  - Fix context, like always.
+
 ## 0.3.0
 
 New features:

@@ -29,12 +29,12 @@ function NukiAccessory(log, config) {
 
 NukiAccessory.prototype.getState = function(callback) {
     this.log("Getting current state...");
-    nukiLock.isLocked(callback);
+    this.nukiLock.isLocked(callback);
 };
   
 NukiAccessory.prototype.setState = function(homeKitState, callback) {
     var lockStateChangeCallback = (function(err, json){
-        if(nukiLock.isDoorLatch()) {
+        if(this.nukiLock.isDoorLatch()) {
             this.service.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
             this.service.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
             callback(null);
@@ -57,10 +57,10 @@ NukiAccessory.prototype.setState = function(homeKitState, callback) {
     
     var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
     if(doLock) {
-        nukiLock.lock(lockStateChangeCallback);
+        this.nukiLock.lock(lockStateChangeCallback);
     }
     else {
-        nukiLock.unlock(lockStateChangeCallback);
+        this.nukiLock.unlock(lockStateChangeCallback);
     }
 };
 
