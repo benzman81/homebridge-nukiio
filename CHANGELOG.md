@@ -1,3 +1,9 @@
+## 0.3.7
+
+Bugfix:
+
+  - Context drives me crazy in JS.
+
 ## 0.3.6
 
 Bugfix:

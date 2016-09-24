@@ -46,10 +46,10 @@ NukiAccessory.prototype.setState = function(homeKitState, callback) {
             this.service.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
             
             if(!update && this.nukiLock.isDoorLatch()) {
-                setTimeout(function(){
+                setTimeout((function(){
                     this.service.setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
                     update = true;  
-                }, 1000);
+                }).bind(this), 2500);
             }
             
             callback(null);
