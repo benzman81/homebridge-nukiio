@@ -1,3 +1,9 @@
+## 0.3.3
+
+Bugfix:
+
+  - Added missing parameter.
+
 ## 0.3.2
 
 New features:
