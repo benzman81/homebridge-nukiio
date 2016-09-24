@@ -1,3 +1,9 @@
+## 0.3.5
+
+Bugfix:
+
+  - Variable corrected.
+
 ## 0.3.4
 
 Bugfix:

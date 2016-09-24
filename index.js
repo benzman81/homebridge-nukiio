@@ -43,7 +43,7 @@ NukiAccessory.prototype.setState = function(homeKitState, callback) {
             var newHomeKitState = (homeKitState == Characteristic.LockTargetState.SECURED) ?
                 Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
             this.log("HomeKit state change complete.");
-            this.service.setCharacteristic(Characteristic.LockCurrentState, newState);
+            this.service.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
             
             if(!update && this.nukiLock.isDoorLatch()) {
                 setTimeout(function(){
