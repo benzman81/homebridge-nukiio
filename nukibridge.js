@@ -91,9 +91,7 @@ NukiBridge.prototype.lockState = function lockState(nukiLock, callback /*(err, j
 };
 
 NukiBridge.prototype.lockAction = function lockAction(nukiLock, lockAction, callback /*(err, json)*/) {
-    if(MORE_LOGGING) {
-        nukiLock.log("Process lock action '%s' for Nuki lock '%s' of Nuki bridge '%s'.", lockAction, nukiLock.instanceId, this.instanceId);
-    }
+    nukiLock.log("Process lock action '%s' for Nuki lock '%s' of Nuki bridge '%s'.", lockAction, nukiLock.instanceId, this.instanceId);
     if(!this.runningRequest) {
         this._sendRequest(
             nukiLock,

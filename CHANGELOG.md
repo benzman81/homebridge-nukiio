@@ -1,3 +1,9 @@
+## 0.3.4
+
+Bugfix:
+
+  - Now, hopefully the status of doors with door latches works.
+
 ## 0.3.3
 
 Bugfix:

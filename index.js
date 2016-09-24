@@ -33,26 +33,27 @@ NukiAccessory.prototype.getState = function(callback) {
 };
   
 NukiAccessory.prototype.setState = function(homeKitState, callback) {
+    var update = (homeKitState == Characteristic.LockTargetState.SECURED) ? true : false;
     var lockStateChangeCallback = (function(err, json){
-        if(this.nukiLock.isDoorLatch()) {
-            this.service.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
-            this.service.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
-            callback(null);
+        if(err) {
+            this.log("An error occured processing lock action.");
+            callback(err);
         }
         else {
-            if(err) {
-                this.log("An error occured processing lock action.");
-                callback(err);
+            var newHomeKitState = (homeKitState == Characteristic.LockTargetState.SECURED) ?
+                Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+            this.log("HomeKit state change complete.");
+            this.service.setCharacteristic(Characteristic.LockCurrentState, newState);
+            
+            if(!update && this.nukiLock.isDoorLatch()) {
+                setTimeout(function(){
+                    this.service.setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+                    update = true;  
+                }, 1000);
             }
-            else {
-                var newHomeKitState = (homeKitState == Characteristic.LockTargetState.SECURED) ?
-                    Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-                this.log("HomeKit state change complete.");
-                this.service
-                    .setCharacteristic(Characteristic.LockCurrentState, newState);
-                callback(null);
-            }
-        } 
+            
+            callback(null);
+        }
     }).bind(this);
     
     var doLock = homeKitState == Characteristic.LockTargetState.SECURED;

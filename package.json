@@ -1,6 +1,6 @@
 {
   "name": "homebridge-nukiio",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Homebridge plugin for Nuki: http://nuki.io",
   "license": "GPL-3.0",
   "keywords": [
