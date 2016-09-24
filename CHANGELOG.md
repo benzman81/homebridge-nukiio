@@ -1,3 +1,9 @@
+## 0.3.0
+
+New features:
+
+  - Again some major code re-work.
+
 ## 0.2.4
 
 Bugfix:

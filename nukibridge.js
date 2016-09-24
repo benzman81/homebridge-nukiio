@@ -1,183 +1,245 @@
 var request = require("request");
 var http = require('http');
 var https = require('https');
-var storage = require('node-persist');
 
-this.LOCK_ACTION_UNLOCK = "1";
-this.LOCK_ACTION_LOCK = "2";
-this.LOCK_ACTION_UNLATCH = "3";
-this.LOCK_ACTION_LOCK_N_GO = "4";
-this.LOCK_ACTION_LOCK_N_GO_UNLATCH = "5";
+global.NUKI_LOCK_ACTION_UNLOCK = "1";
+global.NUKI_LOCK_ACTION_LOCK = "2";
+global.NUKI_LOCK_ACTION_UNLATCH = "3";
+global.NUKI_LOCK_ACTION_LOCK_N_GO = "4";
+global.NUKI_LOCK_ACTION_LOCK_N_GO_UNLATCH = "5";
 
-this.LOCK_STATE_UNCALIBRATED = 0;
-this.LOCK_STATE_LOCKED = 1;
-this.LOCK_STATE_UNLOCKED = 2;
-this.LOCK_STATE_UNLOCKED_LOCK_N_GO = 3;
-this.LOCK_STATE_UNLATCHED = 4;
-this.LOCK_STATE_LOCKING = 5;
-this.LOCK_STATE_UNLOCKING = 6;
-this.LOCK_STATE_UNLATCHING = 7;
-this.LOCK_STATE_MOTOR_BLOCKED = 254;
-this.LOCK_STATE_UNDEFINED = 255;
+global.NUKI_LOCK_STATE_UNCALIBRATED = 0;
+global.NUKI_LOCK_STATE_LOCKED = 1;
+global.NUKI_LOCK_STATE_UNLOCKED = 2;
+global.NUKI_LOCK_STATE_UNLOCKED_LOCK_N_GO = 3;
+global.NUKI_LOCK_STATE_UNLATCHED = 4;
+global.NUKI_LOCK_STATE_LOCKING = 5;
+global.NUKI_LOCK_STATE_UNLOCKING = 6;
+global.NUKI_LOCK_STATE_UNLATCHING = 7;
+global.NUKI_LOCK_STATE_MOTOR_BLOCKED = 254;
+global.NUKI_LOCK_STATE_UNDEFINED = 255;
 
-this.DEFAULT_REQUEST_TIMEOUT = 60000;
-this.DEFAULT_CACHE_DIRECTORY = "./.node-persist./storage";
+var MORE_LOGGING = true;
+var DEFAULT_REQUEST_TIMEOUT = 60000;
+var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 
-http.globalAgent.maxSockets = 1;
-https.globalAgent.maxSockets = 1;
+var instances = [];
 
-this.runningRequest = false;
-this.queue = [];
+this.getInstance = function(log, bridgeUrl, apiToken, requestTimeout, cacheDirectory) {
+    var instanceArray = instances.filter(function(nukiBridge){
+        return nukiBridge.bridgeUrl == bridgeUrl;
+    });
+    if(instanceArray.length == 1) {
+        return instanceArray[0];
+    }
+    else {
+        var newBridge = new NukiBridge(instances.length, log, bridgeUrl, apiToken, requestTimeout, cacheDirectory);
+        instances.push(newBridge);
+        return newBridge;
+    }
+};
 
-this.init = function(log, bridgeUrl, apiToken, requestTimeout, cacheDirectory) {
+function NukiBridge(instanceId, log, bridgeUrl, apiToken, requestTimeout, cacheDirectory) {
     this.log = log;
-    this.log("Initializing Nuki bridge...");
+    this.log("Initializing Nuki bridge '%s' (instance id '%s')...", bridgeUrl, instanceId);
+    this.instanceId = instanceId;
     this.bridgeUrl = bridgeUrl;
     this.apiToken = apiToken;
     this.requestTimeout = requestTimeout;
     this.cacheDirectory = cacheDirectory;
     if(this.requestTimeout == null || this.requestTimeout == "" || this.requestTimeout < 1) {
-        this.requestTimeout = this.DEFAULT_REQUEST_TIMEOUT;
+        this.requestTimeout = DEFAULT_REQUEST_TIMEOUT;
     }
     if(this.cacheDirectory == null || this.cacheDirectory == "") {
-        this.cacheDirectory = this.DEFAULT_CACHE_DIRECTORY;
+        this.cacheDirectory = DEFAULT_CACHE_DIRECTORY;
     }
-    storage.initSync({dir:this.cacheDirectory});
-    this.log("Initialized Nuki bridge.");
-}
+    this.storage = require('node-persist');
+    this.storage.initSync({dir:this.cacheDirectory});
+    
+    this.runningRequest = false;
+    this.queue = [];
+    this.locks = [];
+    
+    this.log("Initialized Nuki bridge (instance id '%s').", instanceId);
+};
 
+NukiBridge.prototype.addLock = function addLock(nukiLock) {
+    nukiLock.instanceId = this.locks.length;
+    this.locks.push(nukiLock);
+};
 
-this.lockState = function(lockId, successfulCallback, failedCallback) {
-    this.log("Requesting lock state for lock %s.", lockId);
+NukiBridge.prototype.lockState = function lockState(nukiLock, callback /*(err, json)*/) {
+    if(MORE_LOGGING) {
+        this.log("Requesting lock state for Nuki lock '%s' of Nuki bridge '%s'.", nukiLock.instanceId, this.instanceId);
+    }
     if(!this.runningRequest) {
-        var successfulCallbackWrapper = (function(json) {
-            var state = json.state;
-            storage.setItemSync('nuki-lock-state-'+lockId, state);
-            successfulCallback(json);
-        }).bind(this);
-        var failedCallbackWrapper = (function(err) {
-            if(err && err.code === 'ETIMEDOUT') {
-                var cachedState = storage.getItemSync('nuki-lock-state-'+lockId);
-                if(!cachedState) {
-                    cachedState = this.LOCK_STATE_LOCKED;
-                }
-                this.log("Read timeout occured requesting lock state. This might happen due to long response time of the Nuki bridge. Using cached state %s.", cachedState);
-                successfulCallback({state: cachedState});
-            }
-            else {
-                failedCallback(err);
-            }
-        }).bind(this);
         this._sendRequest(
             "/lockState",
-            { token: this.apiToken, nukiId: lockId},
-            successfulCallbackWrapper,
-            failedCallbackWrapper
+            { token: this.apiToken, nukiId: nukiLock.lockId},
+            callback
         );
     }
     else {
-        this._addToQueue({lockId: lockId, successfulCallback: successfulCallback, failedCallback: failedCallback});
+        this._addToQueue({nukiLock: nukiLock, callback: callback});
     }
-}
+};
 
-this.lockAction = function(lockId, lockAction, successfulCallback, failedCallback) {
-    this.log("Process lock action %s for lock %s.", lockAction, lockId);
+NukiBridge.prototype.lockAction = function lockAction(nukiLock, lockAction, callback /*(err, json)*/) {
+    if(MORE_LOGGING) {
+        this.log("Process lock action '%s' for Nuki lock '%s' of Nuki bridge '%s'.", lockAction, nukiLock.instanceId, this.instanceId);
+    }
     if(!this.runningRequest) {
-        var newState = this.LOCK_STATE_LOCKED;
-        if(lockAction == this.LOCK_ACTION_UNLOCK || lockAction == this.LOCK_ACTION_UNLATCH) {
-            newState = this.LOCK_STATE_UNLOCKED;
-        }
-        storage.setItemSync('nuki-lock-state-'+lockId, newState);
-        var failedCallbackWrapper = (function(err) {
-            if(err && err.code === 'ETIMEDOUT') {
-                this.log("Read timeout occured processing lock action. This might happen due to long response time of the Nuki bridge. Assuming everthing went well.");
-                successfulCallback({});
-            }
-            else {
-                failedCallback(err);
-            }
-        }).bind(this);
         this._sendRequest(
             "/lockAction",
-            { token: this.apiToken, nukiId: lockId, action: lockAction},
-            successfulCallback,
-            failedCallback
+            { token: this.apiToken, nukiId: nukiLock.lockId, action: lockAction},
+            callback
         );
     }
     else {
-        this._addToQueue({lockId: lockId, lockAction: lockAction, successfulCallback: successfulCallback, failedCallback: failedCallback});
+        this._addToQueue({nukiLock: nukiLock, lockAction: lockAction, callback: callback});
     }
-}
+};
 
-this._sendRequest = function(entryPoint, queryObject, successfulCallback, failedCallback) {
-    this.log("Send request to Nuki bridge to %s with %s.", entryPoint, JSON.stringify(queryObject));
+NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObject, callback /*(err, json)*/) {
+    if(MORE_LOGGING) {
+        this.log("Send request to Nuki bridge '%s' on '%s' with '%s'.", this.instanceId, entryPoint, JSON.stringify(queryObject));
+    }
     this.runningRequest = true;
     request.get({
         url: this.bridgeUrl+entryPoint,
         qs: queryObject,
         timeout: this.requestTimeout
     }, (function(err, response, body) {
-        this.log("Request to Nuki bridge finished.");
+        if(MORE_LOGGING) {
+            this.log("Request to Nuki bridge '%s' finished.", this.instanceId);
+        }
         if (!err && response.statusCode == 200) {
             var json = JSON.parse(body);
             var success = json.success;
             if(success == "true" || success == true) {
-                successfulCallback(json);
+                callback(null, json);
             }
             else {
-                failedCallback(new Error("Request to Nuki bridge was not succesful."));
+                callback(new Error("Request to Nuki bridge was not succesful."));
             }
         }
         else {  
-            failedCallback(err || new Error("Request to Nuki bridge was not succesful."));
+            callback(err || new Error("Request to Nuki bridge was not succesful."));
         }
         this.runningRequest = false;
         this._processNextQueueEntry();
     }).bind(this));
-}
+};
 
-this._addToQueue = function(queueEntry) {
-    this.log("Adding queue entry %s to current queue %s", JSON.stringify(queueEntry), JSON.stringify(this.queue));
-    if(this.queue.length > 0) {
-        var needsRemove = function(filterEntry){
-            var sameLock = queueEntry.lockId == filterEntry.lockId;
-            var bothLockAction = queueEntry.lockAction && filterEntry.lockAction;
-            var bothLockState = !queueEntry.lockAction && !filterEntry.lockAction;
-            var needsRemove = sameLock && (bothLockAction || bothLockState);
-            return needsRemove;
-        };
-        var newQueue = this.queue.filter(function(filterEntry){
-            return !needsRemove(filterEntry);
-        });
-        var removedQueue = this.queue.filter(needsRemove); 
-        removedQueue.forEach((function(item, index){
-            if(!item.lockAction) {
-                var cachedState = storage.getItemSync('nuki-lock-state-'+item.lockId);
-                if(!cachedState) {
-                    cachedState = this.LOCK_STATE_LOCKED;
-                }
-                this.log("Request to Nuki bridge was canceled due to newer requests of same type. Using cached state %s.", cachedState);
-                item.successfulCallback({state: cachedState});
-            }
-            else {
-                item.failedCallback(new Error("Request to Nuki bridge was canceled due to newer requests of same type."));
-            }
-        }).bind(this));
-        this.queue = newQueue;
+NukiBridge.prototype._addToQueue = function _addToQueue(queueEntry) {
+    var wasReplaced = false;
+    for (var i = 0; i < this.queue.length; i++) {
+        var alreadyQueuedEntry = this.queue[i];
+        var sameLock = queueEntry.nukiLock.lockId == alreadyQueuedEntry.nukiLock.lockId;
+        var bothLockAction = queueEntry.lockAction && alreadyQueuedEntry.lockAction;
+        var bothLockState = !queueEntry.lockAction && !alreadyQueuedEntry.lockAction;
+        var needsReplace = sameLock && (bothLockAction || bothLockState);
+        if(needsReplace) {
+            wasReplaced = true;
+            this.queue[i] = queueEntry;
+            alreadyQueuedEntry.callback(new Error("Request to Nuki bridge was canceled due to newer requests of same type."));
+        }
     }
-    this.queue.push(queueEntry);
-    this.log("New queue is %s", JSON.stringify(this.queue));
-}
+    if(!wasReplaced) {
+        this.queue.push(queueEntry);
+    }
+};
 
-this._processNextQueueEntry = function() {
+NukiBridge.prototype._processNextQueueEntry = function _processNextQueueEntry() {
     if(this.queue.length > 0) {
         var queueEntry = this.queue.shift();
-        this.log("Processing next queue entry %s.", JSON.stringify(queueEntry));
         if(queueEntry.lockAction) {
-            this.lockAction(queueEntry.lockId, queueEntry.lockAction, queueEntry.successfulCallback, queueEntry.failedCallback);
+            this.lockAction(queueEntry.nukiLock, queueEntry.lockAction, queueEntry.callback);
         }
         else {
-            this.lockState(queueEntry.lockId, queueEntry.successfulCallback, queueEntry.failedCallback);
+            this.lockState(queueEntry.nukiLock, queueEntry.callback);
         }
     }
-}
+};
+
+function NukiLock(nukiBridge, lockId, lockAction, unlockAction) {
+    this.nukiBridge = nukiBridge;
+    this.log = this.nukiBridge.log;
+    this.lockId = lockId;
+    this.lockAction = lockAction;
+    this.unlockAction = unlockAction;
+    
+    if(this.lockAction == null || this.lockAction == "") {
+        this.lockAction = NUKI_LOCK_ACTION_LOCK;
+    }
+    if(this.unlockAction == null || this.unlockAction == "") {
+        this.unlockAction = NUKI_LOCK_ACTION_UNLOCK;
+    }
+    
+    this.nukiBridge.addLock(this);
+};
+
+NukiLock.prototype.isDoorLatch = function isDoorLatch() {
+    return this.lockAction == NUKI_LOCK_ACTION_UNLATCH && this.lockAction == this.unlockAction;
+};
+
+NukiLock.prototype.isLocked = function isLocked(callback /*(err, isLocked)*/) {
+    if(this.isDoorLatch()) {
+        this.log("Lock state for door latch is always 'locked'.");
+        var locked = true;
+        callback(null, locked);
+    }
+    else {
+        var callbackWrapper = (function(err, json) {
+            if(err) {
+                var cachedIsLocked = this._getIsLockedCached();
+                this.log("Error occured requesting lock state. This might happen due to canceled request or due to long response time of the Nuki bridge. Using cached value isLocked = '%s'.", cachedIsLocked);
+                callback(null, cachedIsLocked);
+            }
+            else {
+                var state = NUKI_LOCK_STATE_UNDEFINED;
+                if(json) {
+                    state = json.state;
+                }
+                var isLocked = 
+                    state == NUKI_LOCK_STATE_LOCKED || 
+                    state == NUKI_LOCK_STATE_LOCKING || 
+                    state == NUKI_LOCK_STATE_UNCALIBRATED || 
+                    state == NUKI_LOCK_STATE_MOTOR_BLOCKED || 
+                    state == NUKI_LOCK_STATE_UNDEFINED;
+                this.log("Lock state is isLocked = '%s' (Nuki state '%s' )", isLocked, state);
+                this._setIsLockedCache(isLocked);
+                callback(null, isLocked);
+            }
+        }).bind(this);
+        this.nukiBridge.lockState(this, callbackWrapper);
+    }
+};
+
+NukiLock.prototype.lock = function lock(callback) {
+    this._setIsLockedCache(true);
+    this.nukiBridge.lockAction(this, this.lockAction, callback);
+};
+
+NukiLock.prototype.unlock = function unlock(callback) {
+    this._setIsLockedCache(false);
+    this.nukiBridge.lockAction(this, this.unlockAction, callback);
+};
+
+NukiLock.prototype._getIsLockedCached = function _getIsLockedCached() {
+    var cachedIsLocked = this.nukiBridge.storage.getItemSync(this._getIsLockedStorageKey());
+    if(cachedIsLocked === undefined) {
+        return true;
+    }
+    return cachedIsLocked;
+};
+
+NukiLock.prototype._setIsLockedCache = function _setIsLockedCache(isLocked) {
+    this.nukiBridge.storage.setItemSync(this._getIsLockedStorageKey(), isLocked);
+};
+
+NukiLock.prototype._getIsLockedStorageKey = function _getIsLockedStorageKey() {
+    return 'bridge-'+this.nukiBridge.instanceId+'-lock-'+this.instanceId+'-islocked';
+};
+
+module.exports = {getInstance: this.getInstance, NukiLock: NukiLock};

@@ -11,21 +11,9 @@ module.exports = function(homebridge) {
 function NukiAccessory(log, config) {
     this.log = log;
     this.name = config["name"];
-    this.apiToken = config["api_token"];
-    this.lockID = config["lock_id"];
-    this.bridgeUrl = config["bridge_url"];
-    this.lockAction = config["lock_action"];
-    this.unlockAction = config["unlock_action"];
-    this.requestTimeout = config["request_timeout"];
-    this.cacheDirectory = config["cache_directory"];
-    if(this.lockAction == null || this.lockAction == "") {
-        this.lockAction = nukibridge.LOCK_ACTION_LOCK;
-    }
-    if(this.unlockAction == null || this.unlockAction == "") {
-        this.unlockAction = nukibridge.LOCK_ACTION_UNLOCK;
-    }
-
-    nukibridge.init(this.log, this.bridgeUrl, this.apiToken, this.requestTimeout, this.cacheDirectory);
+    
+    var nukiBridge = nukibridge.getInstance(this.log, config["bridge_url"], config["api_token"], config["request_timeout"], config["cache_directory"]);
+    this.nukiLock = new nukibridge.NukiLock(nukiBridge, config["lock_id"], config["lock_action"], config["unlock_action"]);
 
     this.service = new Service.LockMechanism(this.name);
 
@@ -41,60 +29,39 @@ function NukiAccessory(log, config) {
 
 NukiAccessory.prototype.getState = function(callback) {
     this.log("Getting current state...");
-    var isDoorLatch = this.lockAction == nukibridge.LOCK_ACTION_UNLATCH && this.lockAction == this.unlockAction;
-    if(isDoorLatch) {
-        this.log("Lock state for door latch is always 'locked'.");
-        var locked = true;
-        callback(null, locked);
-    }
-    else {
-        nukibridge.lockState(
-            this.lockID, 
-            (function(json){
-                var state = nukibridge.LOCK_STATE_UNDEFINED;
-                if(json) {
-                    state = json.state;
-                }
-                this.log("Lock state is %s", state);
-                var locked = 
-                    state == nukibridge.LOCK_STATE_LOCKED || 
-                    state == nukibridge.LOCK_STATE_LOCKING || 
-                    state == nukibridge.LOCK_STATE_UNCALIBRATED || 
-                    state == nukibridge.LOCK_STATE_MOTOR_BLOCKED || 
-                    state == nukibridge.LOCK_STATE_UNDEFINED;
-                callback(null, locked);
-            }).bind(this),
-            (function(err){
-                this.log("An error occured requesting lock state.");
-                callback(err);
-            }).bind(this)
-        );
-    }
+    nukiLock.isLocked(callback);
 };
   
-NukiAccessory.prototype.setState = function(state, callback) {
-    var lockAction = (state == Characteristic.LockTargetState.SECURED) ? this.lockAction : this.unlockAction;
-
-    nukibridge.lockAction(
-        this.lockID, 
-        lockAction,
-        (function(json){
-            var newState = Characteristic.LockCurrentState.SECURED;
-            var isDoorLatch = this.lockAction == nukibridge.LOCK_ACTION_UNLATCH && this.lockAction == this.unlockAction;
-            if(!isDoorLatch) {
-                newState = (state == Characteristic.LockTargetState.SECURED) ?
-                    Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-            }
-            this.log("State change complete.");
-            this.service
-                .setCharacteristic(Characteristic.LockCurrentState, newState);
+NukiAccessory.prototype.setState = function(homeKitState, callback) {
+    var lockStateChangeCallback = (function(err, json){
+        if(nukiLock.isDoorLatch()) {
+            this.service.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+            this.service.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
             callback(null);
-        }).bind(this),
-        (function(err){
-            this.log("An error occured processing lock action.");
-            callback(err);
-        }).bind(this)
-    );
+        }
+        else {
+            if(err) {
+                this.log("An error occured processing lock action.");
+                callback(err);
+            }
+            else {
+                var newHomeKitState = (homeKitState == Characteristic.LockTargetState.SECURED) ?
+                    Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+                this.log("HomeKit state change complete.");
+                this.service
+                    .setCharacteristic(Characteristic.LockCurrentState, newState);
+                callback(null);
+            }
+        } 
+    }).bind(this);
+    
+    var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
+    if(doLock) {
+        nukiLock.lock(lockStateChangeCallback);
+    }
+    else {
+        nukiLock.unlock(lockStateChangeCallback);
+    }
 };
 
 NukiAccessory.prototype.getServices = function() {
