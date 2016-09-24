@@ -233,6 +233,9 @@ NukiLock.prototype.unlock = function unlock(callback) {
 };
 
 NukiLock.prototype._getIsLockedCached = function _getIsLockedCached() {
+    if(this.isDoorLatch()) {
+        return true;
+    }
     var cachedIsLocked = this.nukiBridge.storage.getItemSync(this._getIsLockedStorageKey());
     if(cachedIsLocked === undefined) {
         return true;
@@ -241,7 +244,9 @@ NukiLock.prototype._getIsLockedCached = function _getIsLockedCached() {
 };
 
 NukiLock.prototype._setIsLockedCache = function _setIsLockedCache(isLocked) {
-    this.nukiBridge.storage.setItemSync(this._getIsLockedStorageKey(), isLocked);
+    if(!this.isDoorLatch()) {
+        this.nukiBridge.storage.setItemSync(this._getIsLockedStorageKey(), isLocked);
+    }
 };
 
 NukiLock.prototype._getIsLockedStorageKey = function _getIsLockedStorageKey() {

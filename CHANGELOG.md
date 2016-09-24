@@ -1,3 +1,9 @@
+## 0.3.6
+
+Bugfix:
+
+  - Status cache corrected for doors with door latches.
+
 ## 0.3.5
 
 Bugfix:
