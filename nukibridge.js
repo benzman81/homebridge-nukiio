@@ -20,12 +20,13 @@ global.NUKI_LOCK_STATE_MOTOR_BLOCKED = 254;
 global.NUKI_LOCK_STATE_UNDEFINED = 255;
 
 var MORE_LOGGING = false;
-var DEFAULT_REQUEST_TIMEOUT = 60000;
+var DEFAULT_REQUEST_TIMEOUT_LOCK_STATE = 5000;
+var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 30000;
 var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 
 var instances = [];
 
-this.getInstance = function(log, bridgeUrl, apiToken, requestTimeout, cacheDirectory) {
+this.getInstance = function(constructorLog, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory) {
     var instanceArray = instances.filter(function(nukiBridge){
         return nukiBridge.bridgeUrl == bridgeUrl;
     });
@@ -33,22 +34,25 @@ this.getInstance = function(log, bridgeUrl, apiToken, requestTimeout, cacheDirec
         return instanceArray[0];
     }
     else {
-        var newBridge = new NukiBridge(instances.length, log, bridgeUrl, apiToken, requestTimeout, cacheDirectory);
+        var newBridge = new NukiBridge(constructorLog, instances.length, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory);
         instances.push(newBridge);
         return newBridge;
     }
 };
 
-function NukiBridge(instanceId, log, bridgeUrl, apiToken, requestTimeout, cacheDirectory) {
-    this.log = log;
-    this.log("Initializing Nuki bridge '%s' (instance id '%s')...", bridgeUrl, instanceId);
+function NukiBridge(constructorLog, instanceId, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory) {
+    constructorLog("Initializing Nuki bridge '%s' (instance id '%s')...", bridgeUrl, instanceId);
     this.instanceId = instanceId;
     this.bridgeUrl = bridgeUrl;
     this.apiToken = apiToken;
-    this.requestTimeout = requestTimeout;
+    this.requestTimeoutLockState = requestTimeoutLockState;
+    this.requestTimeoutLockAction = requestTimeoutLockAction;
     this.cacheDirectory = cacheDirectory;
-    if(this.requestTimeout == null || this.requestTimeout == "" || this.requestTimeout < 1) {
-        this.requestTimeout = DEFAULT_REQUEST_TIMEOUT;
+    if(this.requestTimeoutLockState == null || this.requestTimeoutLockState == "" || this.requestTimeoutLockState < 1) {
+        this.requestTimeoutLockState = DEFAULT_REQUEST_TIMEOUT_LOCK_STATE;
+    }
+    if(this.requestTimeoutLockAction == null || this.requestTimeoutLockAction == "" || this.requestTimeoutLockAction < 1) {
+        this.requestTimeoutLockAction = DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION;
     }
     if(this.cacheDirectory == null || this.cacheDirectory == "") {
         this.cacheDirectory = DEFAULT_CACHE_DIRECTORY;
@@ -60,7 +64,7 @@ function NukiBridge(instanceId, log, bridgeUrl, apiToken, requestTimeout, cacheD
     this.queue = [];
     this.locks = [];
     
-    this.log("Initialized Nuki bridge (instance id '%s').", instanceId);
+    constructorLog("Initialized Nuki bridge (instance id '%s').", instanceId);
 };
 
 NukiBridge.prototype.addLock = function addLock(nukiLock) {
@@ -70,12 +74,14 @@ NukiBridge.prototype.addLock = function addLock(nukiLock) {
 
 NukiBridge.prototype.lockState = function lockState(nukiLock, callback /*(err, json)*/) {
     if(MORE_LOGGING) {
-        this.log("Requesting lock state for Nuki lock '%s' of Nuki bridge '%s'.", nukiLock.instanceId, this.instanceId);
+        nukiLock.log("Requesting lock state for Nuki lock '%s' of Nuki bridge '%s'.", nukiLock.instanceId, this.instanceId);
     }
     if(!this.runningRequest) {
         this._sendRequest(
+            nukiLock,
             "/lockState",
             { token: this.apiToken, nukiId: nukiLock.lockId},
+            this.requestTimeoutLockState,
             callback
         );
     }
@@ -86,12 +92,14 @@ NukiBridge.prototype.lockState = function lockState(nukiLock, callback /*(err, j
 
 NukiBridge.prototype.lockAction = function lockAction(nukiLock, lockAction, callback /*(err, json)*/) {
     if(MORE_LOGGING) {
-        this.log("Process lock action '%s' for Nuki lock '%s' of Nuki bridge '%s'.", lockAction, nukiLock.instanceId, this.instanceId);
+        nukiLock.log("Process lock action '%s' for Nuki lock '%s' of Nuki bridge '%s'.", lockAction, nukiLock.instanceId, this.instanceId);
     }
     if(!this.runningRequest) {
         this._sendRequest(
+            nukiLock,
             "/lockAction",
             { token: this.apiToken, nukiId: nukiLock.lockId, action: lockAction},
+            this.requestTimeoutLockAction,
             callback
         );
     }
@@ -100,18 +108,18 @@ NukiBridge.prototype.lockAction = function lockAction(nukiLock, lockAction, call
     }
 };
 
-NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObject, callback /*(err, json)*/) {
+NukiBridge.prototype._sendRequest = function _sendRequest(nukiLock, entryPoint, queryObject, requestTimeout, callback /*(err, json)*/) {
     if(MORE_LOGGING) {
-        this.log("Send request to Nuki bridge '%s' on '%s' with '%s'.", this.instanceId, entryPoint, JSON.stringify(queryObject));
+        nukiLock.log("Send request to Nuki bridge '%s' on '%s' with '%s'.", this.instanceId, entryPoint, JSON.stringify(queryObject));
     }
     this.runningRequest = true;
     request.get({
         url: this.bridgeUrl+entryPoint,
         qs: queryObject,
-        timeout: this.requestTimeout
+        timeout: requestTimeout
     }, (function(err, response, body) {
         if(MORE_LOGGING) {
-            this.log("Request to Nuki bridge '%s' finished.", this.instanceId);
+            nukiLock.log("Request to Nuki bridge '%s' finished.", this.instanceId);
         }
         if (!err && response.statusCode == 200) {
             var json = JSON.parse(body);
@@ -162,9 +170,9 @@ NukiBridge.prototype._processNextQueueEntry = function _processNextQueueEntry() 
     }
 };
 
-function NukiLock(nukiBridge, lockId, lockAction, unlockAction) {
+function NukiLock(log, nukiBridge, lockId, lockAction, unlockAction) {
     this.nukiBridge = nukiBridge;
-    this.log = this.nukiBridge.log;
+    this.log = log;
     this.lockId = lockId;
     this.lockAction = lockAction;
     this.unlockAction = unlockAction;

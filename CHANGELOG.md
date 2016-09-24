@@ -1,3 +1,13 @@
+## 0.3.2
+
+New features:
+
+  - Use different request timeouts for lock state and lock action. (You might need to fix your configuration)
+
+Bugfix:
+
+  - Wrong logging for lock actions.
+
 ## 0.3.1
 
 Bugfix:

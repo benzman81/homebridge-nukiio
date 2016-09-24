@@ -13,7 +13,8 @@ Example config.json:
             "api_token" : "your-nuki-api-token",
             "lock_action" : "2", // (from Nuki API, optional, default: "2")
             "unlock_action" : "1", // (from Nuki API, optional, default: "1")
-            "request_timeout": 60000, // (in ms, optional, default: 60000)
+            "request_timeout_lockstate": 5000, // (in ms, optional, default: 5000)
+            "request_timeout_lockaction": 30000, // (in ms, optional, default: 30000)
             "cache_directory": "./.node-persist./storage" // (optional, default: "./.node-persist./storage")
         }
       ]

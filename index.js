@@ -12,7 +12,7 @@ function NukiAccessory(log, config) {
     this.log = log;
     this.name = config["name"];
     
-    var nukiBridge = nukibridge.getInstance(this.log, config["bridge_url"], config["api_token"], config["request_timeout"], config["cache_directory"]);
+    var nukiBridge = nukibridge.getInstance(this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["cache_directory"]);
     this.nukiLock = new nukibridge.NukiLock(nukiBridge, config["lock_id"], config["lock_action"], config["unlock_action"]);
 
     this.service = new Service.LockMechanism(this.name);
