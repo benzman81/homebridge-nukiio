@@ -55,7 +55,7 @@ NukiAccessory.prototype.setState = function(homeKitState, callback) {
                     this.log("HomeKit change for door latch back to locked state complete.");
                     this.service.getCharacteristic(Characteristic.LockCurrentState).setValue(Characteristic.LockCurrentState.SECURED);
                     update = true;  
-                }).bind(this), 2500);
+                }).bind(this), 1000);
             }
             
             callback(null);

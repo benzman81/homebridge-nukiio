@@ -1,3 +1,9 @@
+## 0.3.10
+
+Bugfix:
+
+  - Improved logging some more.
+
 ## 0.3.9
 
 Bugfix:

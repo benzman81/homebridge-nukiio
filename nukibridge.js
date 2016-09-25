@@ -20,7 +20,6 @@ global.NUKI_LOCK_STATE_UNLATCHING = 7;
 global.NUKI_LOCK_STATE_MOTOR_BLOCKED = 254;
 global.NUKI_LOCK_STATE_UNDEFINED = 255;
 
-var MORE_LOGGING = false;
 var DEFAULT_REQUEST_TIMEOUT_LOCK_STATE = 5000;
 var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 30000;
 var DEFAULT_WEBHOOK_SERVER_PORT = 51827;
@@ -154,9 +153,6 @@ NukiBridge.prototype._getLock = function _getLock(lockId, ignoreDoorsWithDoorLat
 };
 
 NukiBridge.prototype.lockState = function lockState(nukiLock, callback /*(err, json)*/) {
-    if(MORE_LOGGING) {
-        nukiLock.log("Requesting lock state for Nuki lock '%s' of Nuki bridge '%s'.", nukiLock.instanceId, this.instanceId);
-    }
     if(!this.runningRequest) {
         this._sendRequest(
             nukiLock,
@@ -195,10 +191,9 @@ NukiBridge.prototype._sendRequest = function _sendRequest(nukiLock, entryPoint, 
         qs: queryObject,
         timeout: requestTimeout
     }, (function(err, response, body) {
-        if(MORE_LOGGING) {
-            nukiLock.log("Request to Nuki bridge '%s' finished.", this.instanceId);
-        }
-        if (!err && response.statusCode == 200) {
+        var statusCode = response && response.statusCode ? response.statusCode: -1;
+        nukiLock.log("Request to Nuki bridge '%s' finished with status code '%s' and body '%s'.", this.instanceId, statusCode, body);
+        if (!err && statusCode == 200) {
             var json = JSON.parse(body);
             var success = json.success;
             if(success == "true" || success == true) {
