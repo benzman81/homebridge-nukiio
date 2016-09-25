@@ -41,7 +41,7 @@ NukiAccessory.prototype.setState = function(homeKitState, callback) {
     var update = (homeKitState == Characteristic.LockTargetState.SECURED) ? true : false;
     var lockStateChangeCallback = (function(err, json){
         if(err) {
-            this.log("An error occured processing lock action.");
+            this.log("An error occured processing lock action. Reason: %s", err);
             callback(err);
         }
         else {

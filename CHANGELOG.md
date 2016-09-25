@@ -1,3 +1,9 @@
+## 0.3.9
+
+Bugfix:
+
+  - Improved logging.
+
 ## 0.3.8
 
 New features:

@@ -89,7 +89,7 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(constr
             body = Buffer.concat(body).toString();
 
             response.on('error', function(err) {
-            console.error("[ERROR Nuki WebHook Server] Reason: %s.", err);
+                console.error("[ERROR Nuki WebHook Server] Reason: %s.", err);
             });
 
             response.statusCode = 200;
@@ -279,7 +279,7 @@ NukiLock.prototype.isLocked = function isLocked(callback /*(err, isLocked)*/) {
         var callbackWrapper = (function(err, json) {
             if(err) {
                 var cachedIsLocked = this._getIsLockedCached();
-                this.log("Error occured requesting lock state. This might happen due to canceled request or due to long response time of the Nuki bridge. Using cached value isLocked = '%s'.", cachedIsLocked);
+                this.log("Request for lock state aborted. This is no problem and might happen due to canceled request or due to long response time of the Nuki bridge. Using cached value isLocked = '%s'.", cachedIsLocked);
                 callback(null, cachedIsLocked);
             }
             else {
