@@ -22,7 +22,8 @@ Example config.json:
             "unlock_action" : "1", // (from Nuki API, optional, default: "1")
             "request_timeout_lockstate": 5000, // (in ms, optional, default: 5000)
             "request_timeout_lockaction": 30000, // (in ms, optional, default: 30000)
-            "cache_directory": "./.node-persist./storage" // (optional, default: "./.node-persist./storage")
+            "cache_directory": "./.node-persist./storage", // (optional, default: "./.node-persist./storage")
+            "webhook_server_port": 51827 // (optional, default: 51827)
         }
       ]
     }

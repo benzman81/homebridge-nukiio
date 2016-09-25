@@ -1,3 +1,15 @@
+## 0.3.8
+
+New features:
+
+  - Added server for receiving webhook requests (early stage, as not released yet by Nuki and requirements are not clear).
+
+Bugfix:
+
+  - Next try to fix state for doors with door latches.
+  - Doors with door latches now never execute a lock action.
+  - CleanCode.
+
 ## 0.3.7
 
 Bugfix:

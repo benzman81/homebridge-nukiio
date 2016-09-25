@@ -12,9 +12,6 @@ function NukiAccessory(log, config) {
     this.log = log;
     this.name = config["name"];
     
-    var nukiBridge = nukibridge.getInstance(this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["cache_directory"]);
-    this.nukiLock = new nukibridge.NukiLock(this.log, nukiBridge, config["lock_id"], config["lock_action"], config["unlock_action"]);
-
     this.service = new Service.LockMechanism(this.name);
 
     this.service
@@ -25,6 +22,14 @@ function NukiAccessory(log, config) {
         .getCharacteristic(Characteristic.LockTargetState)
         .on('get', this.getState.bind(this))
         .on('set', this.setState.bind(this));
+    
+    var nukiBridge = nukibridge.getInstance(this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["cache_directory"], config["webhook_server_port"]);
+    var webHookCallback = (function(isLocked) {
+        var newHomeKitState = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+        this.service.getCharacteristic(Characteristic.LockCurrentState).setValue(newHomeKitState);
+        this.log("HomeKit state change by webhook complete. New isLocked = '%s'.", isLocked);
+    }).bind(this);
+    this.nukiLock = new nukibridge.NukiLock(this.log, nukiBridge, config["lock_id"], config["lock_action"], config["unlock_action"], webHookCallback);
 };
 
 NukiAccessory.prototype.getState = function(callback) {
@@ -47,7 +52,8 @@ NukiAccessory.prototype.setState = function(homeKitState, callback) {
             
             if(!update && this.nukiLock.isDoorLatch()) {
                 setTimeout((function(){
-                    this.service.setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+                    this.log("HomeKit change for door latch back to locked state complete.");
+                    this.service.getCharacteristic(Characteristic.LockCurrentState).setValue(Characteristic.LockCurrentState.SECURED);
                     update = true;  
                 }).bind(this), 2500);
             }
