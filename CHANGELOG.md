@@ -1,3 +1,9 @@
+## 0.3.11
+
+Bugfix:
+
+  - One more logging change to avoid confusion.
+
 ## 0.3.10
 
 Bugfix:
