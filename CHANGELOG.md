@@ -1,3 +1,9 @@
+## 0.4.0
+
+New features:
+
+  - Changed to provide a platform with accessories. You must change your configuration.
+
 ## 0.3.11
 
 Bugfix:

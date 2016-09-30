@@ -1,6 +1,5 @@
 var request = require("request");
 var http = require('http');
-var https = require('https');
 var url = require('url');
 
 global.NUKI_LOCK_ACTION_UNLOCK = "1";
@@ -25,25 +24,9 @@ var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 30000;
 var DEFAULT_WEBHOOK_SERVER_PORT = 51827;
 var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 
-var instances = [];
-
-this.getInstance = function(constructorLog, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory, webHookServerPort) {
-    var instanceArray = instances.filter(function(nukiBridge){
-        return nukiBridge.bridgeUrl == bridgeUrl;
-    });
-    if(instanceArray.length == 1) {
-        return instanceArray[0];
-    }
-    else {
-        var newBridge = new NukiBridge(constructorLog, instances.length, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory, webHookServerPort);
-        instances.push(newBridge);
-        return newBridge;
-    }
-};
-
-function NukiBridge(constructorLog, instanceId, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory, webHookServerPort) {
-    constructorLog("Initializing Nuki bridge '%s' (instance id '%s')...", bridgeUrl, instanceId);
-    this.instanceId = instanceId;
+function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory, webHookServerPort) {
+    this.log = log;
+    this.log("Initializing Nuki bridge '%s'...", bridgeUrl);
     this.bridgeUrl = bridgeUrl;
     this.apiToken = apiToken;
     this.requestTimeoutLockState = requestTimeoutLockState;
@@ -69,12 +52,12 @@ function NukiBridge(constructorLog, instanceId, bridgeUrl, apiToken, requestTime
     this.queue = [];
     this.locks = [];
     
-    this._createWebHookServer(constructorLog, this.webHookServerPort);
+    this._createWebHookServer(this.log, this.webHookServerPort);
     
-    constructorLog("Initialized Nuki bridge (instance id '%s').", instanceId);
+    this.log("Initialized Nuki bridge.");
 };
 
-NukiBridge.prototype._createWebHookServer = function _createWebHookServer(constructorLog, webHookServerPort) {
+NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, webHookServerPort) {
     http.createServer((function(request, response) {
         var theUrl = request.url;
         var theUrlParts = url.parse(theUrl, true);
@@ -131,7 +114,7 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(constr
             }
         }).bind(this));
     }).bind(this)).listen(webHookServerPort);    
-    constructorLog("Started server for webhooks on port '%s'.", webHookServerPort);
+    this.log("Started server for webhooks on port '%s'.", webHookServerPort);
 };
 
 NukiBridge.prototype.addLock = function addLock(nukiLock) {
@@ -169,7 +152,7 @@ NukiBridge.prototype.lockState = function lockState(nukiLock, callback /*(err, j
 
 NukiBridge.prototype.lockAction = function lockAction(nukiLock, lockAction, callback /*(err, json)*/) {
     if(!this.runningRequest) {
-        nukiLock.log("Process lock action '%s' for Nuki lock '%s' of Nuki bridge '%s'.", lockAction, nukiLock.instanceId, this.instanceId);
+        nukiLock.log("Process lock action '%s' for Nuki lock '%s' on Nuki bridge '%s'.", lockAction, nukiLock.instanceId, this.bridgeUrl);
         this._sendRequest(
             nukiLock,
             "/lockAction",
@@ -184,7 +167,7 @@ NukiBridge.prototype.lockAction = function lockAction(nukiLock, lockAction, call
 };
 
 NukiBridge.prototype._sendRequest = function _sendRequest(nukiLock, entryPoint, queryObject, requestTimeout, callback /*(err, json)*/) {
-    nukiLock.log("Send request to Nuki bridge '%s' on '%s' with '%s'.", this.instanceId, entryPoint, JSON.stringify(queryObject));
+    nukiLock.log("Send request to Nuki bridge '%s' on '%s' with '%s'.", this.bridgeUrl, entryPoint, JSON.stringify(queryObject));
     this.runningRequest = true;
     request.get({
         url: this.bridgeUrl+entryPoint,
@@ -192,7 +175,7 @@ NukiBridge.prototype._sendRequest = function _sendRequest(nukiLock, entryPoint, 
         timeout: requestTimeout
     }, (function(err, response, body) {
         var statusCode = response && response.statusCode ? response.statusCode: -1;
-        nukiLock.log("Request to Nuki bridge '%s' finished with status code '%s' and body '%s'.", this.instanceId, statusCode, body);
+        nukiLock.log("Request to Nuki bridge '%s' finished with status code '%s' and body '%s'.", this.bridgeUrl, statusCode, body, err);
         if (!err && statusCode == 200) {
             var json = JSON.parse(body);
             var success = json.success;
@@ -336,7 +319,7 @@ NukiLock.prototype._setIsLockedCache = function _setIsLockedCache(isLocked) {
 };
 
 NukiLock.prototype._getIsLockedStorageKey = function _getIsLockedStorageKey() {
-    return 'bridge-'+this.nukiBridge.instanceId+'-lock-'+this.instanceId+'-islocked';
+    return 'bridge-'+this.bridgeUrl+'-lock-'+this.instanceId+'-islocked';
 };
 
-module.exports = {getInstance: this.getInstance, NukiLock: NukiLock};
+module.exports = {NukiBridge: NukiBridge, NukiLock: NukiLock};
