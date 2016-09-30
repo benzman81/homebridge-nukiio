@@ -107,7 +107,7 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
                         var isLocked = lock._isLocked(state);
                         lock._setLockCache(isLocked, batteryCritical===true || batteryCritical==="true");  
                         console.log("[INFO Nuki WebHook Server] Updated lock state from webhook to isLocked = '%s' (Nuki state '%s' ) for lock '%s' (instance id '%s') with batteryCritical = '%s'.", isLocked, state, lock.id, lock.instanceId, batteryCritical);
-                        lock.webHookCallback(isLocked);
+                        lock.webHookCallback(isLocked, batteryCritical);
                     }                      
                     response.write(JSON.stringify(responseBody));
                     response.end();

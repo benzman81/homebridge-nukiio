@@ -69,9 +69,11 @@ function NukiLockAccessory(log, config, nukiBridge) {
         .getCharacteristic(Characteristic.StatusLowBattery)
         .on('get', this.getLowBatt.bind(this));
         
-    var webHookCallback = (function(isLocked) {
-        var newHomeKitState = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-        this.lockService.getCharacteristic(Characteristic.LockCurrentState).setValue(newHomeKitState);
+    var webHookCallback = (function(isLocked, batteryCritical) {
+        var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+        var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+        this.lockService.getCharacteristic(Characteristic.LockCurrentState).setValue(newHomeKitStateLocked);
+        this.battservice.getCharacteristic(Characteristic.StatusLowBattery).setValue(newHomeKitStateBatteryCritical);
         this.log("HomeKit state change by webhook complete. New isLocked = '%s'.", isLocked);
     }).bind(this);
     this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["lock_action"], config["unlock_action"], webHookCallback);

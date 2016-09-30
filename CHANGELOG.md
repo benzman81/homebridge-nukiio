@@ -1,3 +1,9 @@
+## 0.4.4
+
+Bugfix:
+
+  - Need to push battery state update back to HomeKit.
+
 ## 0.4.3
 
 Bugfix:
