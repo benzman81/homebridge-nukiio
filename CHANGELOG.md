@@ -1,3 +1,9 @@
+## 0.4.3
+
+Bugfix:
+
+  - Added battery state update to the webhook.
+
 ## 0.4.2
 
 Bugfix:

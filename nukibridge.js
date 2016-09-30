@@ -77,10 +77,10 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
             response.statusCode = 200;
             response.setHeader('Content-Type', 'application/json');
 
-            if(!theUrlParams.nukiId || !theUrlParams.state) {
+            if(!theUrlParams.nukiId || !theUrlParams.state || !theUrlParams.batteryCritical) {
                 response.statusCode = 404;
                 response.setHeader("Content-Type", "text/plain");
-                var errorText = "[ERROR Nuki WebHook Server] No nukiId or state in request.";
+                var errorText = "[ERROR Nuki WebHook Server] No nukiId or state or batteryCritical in request.";
                 console.error(errorText);
                 response.write(errorText);
                 response.end();
@@ -88,6 +88,7 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
             else {
                 var nukiId = theUrlParams.nukiId;
                 var state = theUrlParams.state;
+                var batteryCritical = theUrlParams.batteryCritical;
                 var ignoreDoorsWithDoorLatches = true;
                 var lock = this._getLock(nukiId, ignoreDoorsWithDoorLatches);
                 if(lock == null) {
@@ -104,8 +105,8 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
                     };
                     if(!lock.isDoorLatch()) {
                         var isLocked = lock._isLocked(state);
-                        lock._setLockCache(isLocked);  
-                        console.log("[INFO Nuki WebHook Server] Updated lock state from webhook to isLocked = '%s' (Nuki state '%s' ) for lock '%s' (instance id '%s').", isLocked, state, lock.id, lock.instanceId);
+                        lock._setLockCache(isLocked, batteryCritical===true || batteryCritical==="true");  
+                        console.log("[INFO Nuki WebHook Server] Updated lock state from webhook to isLocked = '%s' (Nuki state '%s' ) for lock '%s' (instance id '%s') with batteryCritical = '%s'.", isLocked, state, lock.id, lock.instanceId, batteryCritical);
                         lock.webHookCallback(isLocked);
                     }                      
                     response.write(JSON.stringify(responseBody));
