@@ -34,7 +34,8 @@ Example config.json:
         ]
     }
 
-Doors with door latches: If you set "lock_action" and "unlock_action" both to "3" you get an accessory that shows always locked state and always does an unlatch.
+Doors with door latches: If you own a door with a door latch, than you can add the same lock twices. On the second entry you set "lock_action" and "unlock_action" to "3".
+This way you get an additional lock accessory that shows always locked state and always does an unlatch. The additional lock will not change its battery status to save bridge calls since the other lock will already show correct battery status.
 
 # Additional information
 The plugin uses the Nuki API of the bridge. The API token can be configured via the Nuki app when enabling the API.

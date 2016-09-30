@@ -1,3 +1,15 @@
+## 0.4.1
+
+New features:
+
+  - Added information service.
+  - Added battery service (only critical battery state is provided by Nuki, so no change in percentage).
+
+Bugfix:
+
+  - Extended logging.
+  - Change cache key.
+
 ## 0.4.0
 
 New features:
