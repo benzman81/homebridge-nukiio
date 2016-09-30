@@ -1,3 +1,9 @@
+## 0.4.2
+
+Bugfix:
+
+  - Battery service is returned now.
+
 ## 0.4.1
 
 New features:

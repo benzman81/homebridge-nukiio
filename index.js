@@ -138,5 +138,5 @@ NukiLockAccessory.prototype.getLowBatt = function(callback) {
 };
 
 NukiLockAccessory.prototype.getServices = function() {
-  return [this.lockService, this.informationService];
+  return [this.lockService, this.informationService, this.battservice];
 };
