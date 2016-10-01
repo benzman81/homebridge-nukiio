@@ -74,7 +74,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
         var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
         this.lockService.getCharacteristic(Characteristic.LockCurrentState).setValue(newHomeKitStateLocked);
         this.battservice.getCharacteristic(Characteristic.StatusLowBattery).setValue(newHomeKitStateBatteryCritical);
-        this.log("HomeKit state change by webhook complete. New isLocked = '%s'.", isLocked);
+        this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
     }).bind(this);
     this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["lock_action"], config["unlock_action"], webHookCallback);
 };

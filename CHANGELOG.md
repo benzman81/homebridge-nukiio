@@ -1,3 +1,10 @@
+## 0.4.5
+
+Bugfix:
+
+  - Fix logging.
+  - Always updated to battery is low state.
+
 ## 0.4.4
 
 Bugfix:
