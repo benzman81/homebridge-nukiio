@@ -1,3 +1,15 @@
+## 0.5.0
+
+New features:
+
+  - Make use of Nuki Webhook to avoid requests for lock state.
+  - Updated according to Nuki HTTP API documentation v1.0.3.
+
+Bugfix:
+
+  - Added context to setValue call.
+  - Hopefully fixed the state issue for state update from background (i.e. for Webhooks and doors with door latches).
+
 ## 0.4.5
 
 Bugfix:
