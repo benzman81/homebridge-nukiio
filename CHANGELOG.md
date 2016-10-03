@@ -1,3 +1,12 @@
+## 0.5.1
+
+Bugfix:
+
+  - Removed unwanted logging.
+  - Set default timeout for requesting lock state to 15 seconds.
+  - Set default timeout for requesting lock action to 45 seconds.
+  - Webhooks now work with Nuki bridge firmware 1.2.9 and up.
+
 ## 0.5.0
 
 New features:

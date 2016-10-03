@@ -18,8 +18,8 @@ global.NUKI_LOCK_STATE_UNLATCHING = 7;
 global.NUKI_LOCK_STATE_MOTOR_BLOCKED = 254;
 global.NUKI_LOCK_STATE_UNDEFINED = 255;
 
-var DEFAULT_REQUEST_TIMEOUT_LOCK_STATE = 5000;
-var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 30000;
+var DEFAULT_REQUEST_TIMEOUT_LOCK_STATE = 15000;
+var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 45000;
 var DEFAULT_WEBHOOK_SERVER_PORT = 51827;
 var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 
@@ -273,7 +273,6 @@ NukiBridge.prototype._addToQueue = function _addToQueue(queueEntry) {
     if(!wasReplaced && !wasAdded) {
         this.queue.push(queueEntry);
     }
-    console.log(this.queue.length);
     
     setTimeout((function(){ 
         if(!this.runningRequest) {
