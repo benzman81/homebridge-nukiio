@@ -9,6 +9,7 @@ Bugfix:
 
   - Added context to setValue call.
   - Hopefully fixed the state issue for state update from background (i.e. for Webhooks and doors with door latches).
+  - Changed queue handling.
 
 ## 0.4.5
 
