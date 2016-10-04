@@ -4,10 +4,9 @@
 Nuki.io support for Homebridge: https://github.com/nfarina/homebridge 
 
 #Current state
-The plugin is currently under heavy development, as the plugin development started based on a dummy server faking a nuki Bridge. 
-Now, since I received the hardware bridge, there has been a lot of issues that I am currently still working on. 
-But in the end I always try to provide a "mostly" working version. Currently there is still an issue, where my hardware bridge is 
-doing a restart when I open the Home-App once in a while and doors with door latches do not work well. All issues are in work.
+The plugin is currently under heavy development, as it needs to be better balanced with the hardware brige. 
+Currently there is still an issue where the state of a door might be displayed wrong in the app if it was open and a state change occurs through webhook or a door with door latch.
+The restart issue of the bridge seems to be fixed by firmware update 1.2.9.
 
 # Configuration
 Example config.json:
@@ -23,12 +22,14 @@ Example config.json:
                 "cache_directory": "./.node-persist/storage", // (optional, default: "./.node-persist/storage")
                 "webhook_server_ip_or_name": "xxx.xxx.xxx.xxx", // (optional)
                 "webhook_port": 51827, // (optional, default: 51827)
+                "lock_state_mode": 0, // (optional, default: 0, 0 = request bridge for state, 1 = only uses cached values [only possible with active webhooks] )
                 "locks": [
                     {
                         "id": "your-lock-id",
                         "name": "Front Door",
                         "lock_action" : "2", // (from Nuki API, optional, default: "2")
-                        "unlock_action" : "1" // (from Nuki API, optional, default: "1")
+                        "unlock_action" : "1", // (from Nuki API, optional, default: "1")
+                        "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
                     }
                 ]
             }
@@ -41,8 +42,9 @@ This way you get an additional lock accessory that shows always locked state and
 # Use Nuki Webhook
 Usually the plugin makes calls to nuki bridge to get the state of a lock. Since Nuki supports Webhooks it is possible for Nuki to push a lock state on the fly to the plugin.
 If the configuration parameter "webhook_server_ip_or_name" is set, than the plugin registers a Webhook in Nuki automatically if not already set to use it for lock state update and caches it.
-If the configuration parameter "webhook_server_ip_or_name" is not set, than a request will be send to the bridge every time a lock state is requested. 
-In later development using Webhook will send no more request to the bridge for lock state. This will be changed in a later release.
+If the configuration parameter "lock_state_mode" is set to 0, than there are still requests going out to the bridge for requesting state update and the Webhook only pushes the new state
+to HomeKit changes of the loock not done with HomeKit (i.e. pushin hardware button or using the Nuki app). If the configuration parameter "lock_state_mode" is set to 1, than there
+will be no requests send to the bridge for requesting the state. Only the cache is returned that is maintained by the webhooks.
 
 * Note: An automatically added Webhook does not get removed ever, so you need to do it manually if you don't need it anymore.*
 

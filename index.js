@@ -20,6 +20,7 @@ function NukiBridgePlatform(log, config){
         config["request_timeout_lockstate"],
         config["request_timeout_lockaction"], 
         config["cache_directory"], 
+        config["lock_state_mode"], 
         config["webhook_server_ip_or_name"], 
         config["webhook_port"]
     );
@@ -79,7 +80,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
         this.battservice.getCharacteristic(Characteristic.StatusLowBattery).setValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
         this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
     }).bind(this);
-    this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["lock_action"], config["unlock_action"], webHookCallback);
+    this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["lock_action"], config["unlock_action"], config["priority"], webHookCallback);
 };
 
 NukiLockAccessory.prototype.getState = function(callback) {

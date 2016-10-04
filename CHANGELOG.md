@@ -1,3 +1,14 @@
+## 0.5.2
+
+New features:
+
+  - Added priority to door to have a better order if you tell Siri to unlock all doors.
+  - Added configuration for lock state mode.
+
+Bugfix:
+
+  - Json repsonse success=false was not shown as error.
+
 ## 0.5.1
 
 Bugfix:
