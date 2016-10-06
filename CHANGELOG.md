@@ -1,3 +1,9 @@
+## 0.5.3
+
+Bugfix:
+
+  - Bridge url now does not need to start with protocol http.
+
 ## 0.5.2
 
 New features:

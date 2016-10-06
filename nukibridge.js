@@ -29,8 +29,14 @@ var LOCK_STATE_MODE_ONLY_CACHE = 1;
 
 function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
     this.log = log;
-    this.log("Initializing Nuki bridge '%s'...", bridgeUrl);
     this.bridgeUrl = bridgeUrl;
+    if(this.bridgeUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
+       this.bridgeUrl = "http://"+this.bridgeUrl; 
+    }
+    if(this.bridgeUrl.lastIndexOf("/") === this.bridgeUrl.length -1) {
+       this.bridgeUrl = this.bridgeUrl.slice(0, -1);
+    }
+    this.log("Initializing Nuki bridge '%s'...", this.bridgeUrl);
     this.apiToken = apiToken;
     this.requestTimeoutLockState = requestTimeoutLockState;
     this.requestTimeoutLockAction = requestTimeoutLockAction;
@@ -67,7 +73,10 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
     
         console.log("HIER: "+this.webHookServerIpOrName);
     if(this.webHookServerIpOrName && this.webHookServerIpOrName !== "") {
-        this.webHookUrl = "http://"+this.webHookServerIpOrName+":"+this.webHookServerPort+"/";
+        this.webHookUrl = this.webHookServerIpOrName+":"+this.webHookServerPort+"/";
+        if(this.webHookUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
+           this.webHookUrl = "http://"+this.webHookUrl; 
+        }
         this._createWebHookServer(this.log, this.webHookServerPort);
         this._addWebhookToBridge();
     }
