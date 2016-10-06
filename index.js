@@ -75,7 +75,9 @@ function NukiLockAccessory(log, config, nukiBridge) {
         
     var webHookCallback = (function(isLocked, batteryCritical) {
         var newHomeKitStateLocked = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+        var newHomeKitStateLockedCurrent = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
         var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+        this.lockService.getCharacteristic(Characteristic.LockCurrentState).setValue(newHomeKitStateLockedCurrent, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
         this.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND); 
         this.battservice.getCharacteristic(Characteristic.StatusLowBattery).setValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
         this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
@@ -89,41 +91,44 @@ NukiLockAccessory.prototype.getState = function(callback) {
 };
   
 NukiLockAccessory.prototype.setState = function(homeKitState, callback, context) {
-    var lockStateChangeCallback = (function(err, json){
-        if(err) {
-            this.log("An error occured processing lock action. Reason: %s", err);
-            callback(err);
-        }
-        else {
-            var newHomeKitState = (homeKitState == Characteristic.LockTargetState.SECURED) ?
-                Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-            this.log("HomeKit state change complete.");
-            this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
-            
-            if(this.nukiLock.isDoorLatch() && newHomeKitState == Characteristic.LockCurrentState.UNSECURED) {
-                setTimeout((function(){
-                    this.log("HomeKit change for door latch back to locked state complete.");
-                    this.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(Characteristic.LockTargetState.SECURED, undefined, CONTEXT_FROM_NUKI_BACKGROUND); 
-                }).bind(this), 1000);
-            }
-            
-            callback(null);
-        }
-    }).bind(this);
-    
-    if(context === CONTEXT_FROM_NUKI_BACKGROUND) {
-        var newHomeKitState = (homeKitState == Characteristic.LockTargetState.SECURED) ?
-            Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-        this.log("HomeKit state change complete.");
+    var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
+    var newHomeKitState = doLock ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+    if(this.nukiLock.isDoorLatch() && doLock) {
         this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
+        callback(null);
     }
-    else {
-        var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
-        if(doLock) {
-            this.nukiLock.lock(lockStateChangeCallback);
+    else {   
+        var lockStateChangeCallback = (function(err, json){
+            if(err) {
+                this.log("An error occured processing lock action. Reason: %s", err);
+                callback(err);
+            }
+            else {
+                this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
+                
+                if(this.nukiLock.isDoorLatch() && !doLock) {
+                    setTimeout((function(){
+                        this.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(Characteristic.LockTargetState.SECURED, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+                        this.log("HomeKit change for door latch back to locked state complete.");
+                    }).bind(this), 1000);
+                }
+                
+                callback(null);
+                this.log("HomeKit state change complete.");
+            }
+        }).bind(this);
+        
+        if(context === CONTEXT_FROM_NUKI_BACKGROUND) {
+            this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
+            this.log("HomeKit state change complete from Background.");
         }
         else {
-            this.nukiLock.unlock(lockStateChangeCallback);
+            if(doLock) {
+                this.nukiLock.lock(lockStateChangeCallback);
+            }
+            else {
+                this.nukiLock.unlock(lockStateChangeCallback);
+            }
         }
     }
 };

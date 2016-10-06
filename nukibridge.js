@@ -71,7 +71,6 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
     this.queue = [];
     this.locks = [];
     
-        console.log("HIER: "+this.webHookServerIpOrName);
     if(this.webHookServerIpOrName && this.webHookServerIpOrName !== "") {
         this.webHookUrl = this.webHookServerIpOrName+":"+this.webHookServerPort+"/";
         if(this.webHookUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
@@ -385,7 +384,9 @@ function NukiLock(log, nukiBridge, id, lockAction, unlockAction, priority, webHo
     var callbackIsLocked = (function(err, json) {
         this.log("Initial is locked request finished.");
     }).bind(this);
-    this.isLocked(callbackIsLocked,true);
+    if(this.lockStateMode === LOCK_STATE_MODE_ONLY_CACHE) {
+        this.isLocked(callbackIsLocked,true);
+    }
 };
 
 NukiLock.prototype.isDoorLatch = function isDoorLatch() {

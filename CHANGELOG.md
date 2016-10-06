@@ -1,3 +1,12 @@
+## 0.5.4
+
+Bugfix:
+
+  - Move logging out put for successful message to actualle be called only after characteristics are set.
+  - Removed unwanted console logging.
+  - Only check initial locks state if lock_state_mode = 1.
+  - More fixes on state issue for state update from background (i.e. for Webhooks and doors with door latches).
+
 ## 0.5.3
 
 Bugfix:
