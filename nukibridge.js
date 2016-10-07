@@ -320,11 +320,7 @@ NukiBridge.prototype._lastKnownlockState = function _lastKnownlockState(nukiLock
                     for (var i = 0; i < json.length; i++) {
                         var jsonLock = json[i];
                         if(jsonLock.nukiId+"" === callbackNukiId) {
-                            //TODO an API anpassen
-                            var stateJson = {
-                                state: jsonLock.nukiId+"" === "63120361" ? 1: 3,
-                                batteryCritical: true
-                            };
+                            stateJson = jsonLock.lastKnownState;
                             lockErr = null;
                             break;
                         }
