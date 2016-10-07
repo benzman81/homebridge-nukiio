@@ -158,7 +158,7 @@ NukiBridge.prototype._addWebhookToBridge = function _addWebhookToBridge() {
                 }
             }
             if(webhookExists) {
-                this.log("Webhook for plugin already exists.", err);
+                this.log("Webhook for plugin already exists.");
             }
             else {
                 this._addCallback();
@@ -173,7 +173,7 @@ NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest)
         this._sendRequest(
             "/callback/list",
             { token: this.apiToken},
-            this.requestTimeoutLockAction,
+            this.requestTimeoutLockState,
             callback
         );
     }
@@ -189,13 +189,13 @@ NukiBridge.prototype._addCallback = function _addCallback(doRequest) {
                 throw new Error("Adding webhook failed: "+err);
             }
             else {
-                this.log("Webhook for plugin added.", err);
+                this.log("Webhook for plugin added.");
             }
         }).bind(this);
         this._sendRequest(
             "/callback/add",
             { token: this.apiToken, url: this.webHookUrl},
-            this.requestTimeoutLockAction,
+            this.requestTimeoutLockState,
             callback
         );
     }
@@ -214,7 +214,7 @@ NukiBridge.prototype.reboot = function reboot(callback, doRequest) {
         this._sendRequest(
             "/reboot",
             { token: this.apiToken},
-            this.requestTimeoutLockAction,
+            this.requestTimeoutLockState,
             callbackWrapper
         );
     }
@@ -233,7 +233,7 @@ NukiBridge.prototype.updateFirmware = function updateFirmware(callback, doReques
         this._sendRequest(
             "/fwupdate",
             { token: this.apiToken},
-            this.requestTimeoutLockAction,
+            this.requestTimeoutLockState,
             callbackWrapper
         );
     }

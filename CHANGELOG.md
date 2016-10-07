@@ -3,6 +3,7 @@
 New features:
 
   - Implemented lock state mode "2".
+  - Added the ability to add maintainance buttons for reboot, firmware update, and to refresh all locks state.
   - Added methods to bridge for reboot, firmware update, and for refreshing all locks.
 
 Bugfix:

@@ -22,6 +22,7 @@ Example config.json:
                 "webhook_server_ip_or_name": "xxx.xxx.xxx.xxx", // (optional)
                 "webhook_port": 51827, // (optional, default: 51827)
                 "lock_state_mode": 0, // (see below, optional, default: 0)
+                "add_maintainance_buttons": false, // (optional, default: false, if set to true, than three switches will be added as accessory to do reboot, firmware update, and to refresh all locks state)
                 "locks": [
                     {
                         "id": "your-lock-id",

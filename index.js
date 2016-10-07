@@ -7,6 +7,7 @@ module.exports = function(homebridge) {
 
     homebridge.registerPlatform("homebridge-nukiio", "NukiBridge", NukiBridgePlatform);
     homebridge.registerAccessory("homebridge-nukiio", "NukiLock", NukiLockAccessory);
+    homebridge.registerAccessory("homebridge-nukiio", "NukiBridgeMaintainanceSwitch", NukiBridgeMaintainanceSwitchAccessory);
 };
 
 var CONTEXT_FROM_NUKI_BACKGROUND = "fromNukiBackground";
@@ -25,6 +26,7 @@ function NukiBridgePlatform(log, config){
         config["webhook_port"]
     );
     this.locks = config["locks"] || [];
+    this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
 }
 
 NukiBridgePlatform.prototype = {
@@ -35,8 +37,11 @@ NukiBridgePlatform.prototype = {
             var lock = new NukiLockAccessory(this.log, this.locks[i], this.nukiBridge);
             accessories.push(lock);
         }
-        var accessoriesCount = accessories.length;
-        
+        if(this.addMaintainanceButtons) {
+            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge));
+            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-fwupdate", "Nuki Bridge Firmware Update", this.nukiBridge));
+            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-refreshall", "Nuki Bridge Refresh All", this.nukiBridge));
+        }
         callback(accessories);
     }
 }
@@ -156,4 +161,62 @@ NukiLockAccessory.prototype.getLowBatt = function(callback) {
 
 NukiLockAccessory.prototype.getServices = function() {
   return [this.lockService, this.informationService, this.battservice];
+};
+
+function NukiBridgeMaintainanceSwitchAccessory(log, id, name, nukiBridge) {
+    this.log = log;
+    this.id = id;
+    this.name = name;
+    this.nukiBridge = nukiBridge;
+    
+    this.switchService = new Service.Switch(this.name);
+    this.switchService
+        .getCharacteristic(Characteristic.On)
+        .on('get', this.getState.bind(this))
+        .on('set', this.setState.bind(this));
+    
+    this.informationService = new Service.AccessoryInformation();
+    this.informationService
+        .setCharacteristic(Characteristic.Manufacturer, "Nuki.io")
+        .setCharacteristic(Characteristic.Model, "Nuki.io Maintainance Switch")
+        .setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id "+this.id);
+}
+
+NukiBridgeMaintainanceSwitchAccessory.prototype.getState = function(callback) {
+    this.log("Getting current state for '%s'...", this.id);
+    var state = this.nukiBridge.storage.getItemSync('bridge-'+this.nukiBridge.bridgeUrl+'-'+this.id+'-cache');
+    if(state === undefined) {
+        state = false;
+    }
+    callback(null, state);
+};
+
+NukiBridgeMaintainanceSwitchAccessory.prototype.setState = function(powerOn, callback) {
+    this.log("Switch state for '%s' to '%s'...", this.id, powerOn);
+    this.nukiBridge.storage.setItemSync('bridge-'+this.nukiBridge.bridgeUrl+'-'+this.id+'-cache', false);
+    if(powerOn) {
+        var callbackWrapper = (function(err, json) {
+            callback(null);
+            setTimeout((function(){ 
+                this.switchService.getCharacteristic(Characteristic.On)
+                    .setValue(false, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+            }).bind(this), 2500);
+        }).bind(this);
+        if(this.id === "maintainance-switch-reboot") {
+            this.nukiBridge.reboot(callbackWrapper);
+        }
+        else if(this.id === "maintainance-switch-fwupdate") {
+            this.nukiBridge.updateFirmware(callbackWrapper);
+        }
+        else if(this.id === "maintainance-switch-refreshall") {
+            this.nukiBridge.refreshAllLocks(callbackWrapper);
+        }
+    }
+    else {
+        callback(null);
+    }
+};
+
+NukiBridgeMaintainanceSwitchAccessory.prototype.getServices = function() {
+  return [this.switchService, this.informationService];
 };
