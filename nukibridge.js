@@ -24,8 +24,9 @@ var DEFAULT_WEBHOOK_SERVER_PORT = 51827;
 var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 var DEFAULT_PRIORITY = 99;
 
-var LOCK_STATE_MODE_REQUESTS = 0;
+var LOCK_STATE_MODE_REQUEST_LOCKSTATE = 0;
 var LOCK_STATE_MODE_ONLY_CACHE = 1;
+var LOCK_STATE_MODE_REQUEST_LASTKNOWNLOCKSTATE = 2;
 
 function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
     this.log = log;
@@ -54,7 +55,7 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
         this.cacheDirectory = DEFAULT_CACHE_DIRECTORY;
     }
     if(this.lockStateMode == null || this.lockStateMode == "") {
-        this.lockStateMode = LOCK_STATE_MODE_REQUESTS;
+        this.lockStateMode = LOCK_STATE_MODE_REQUEST_LOCKSTATE;
     }
     if(this.webHookServerPort == null || this.webHookServerPort == "") {
         this.webHookServerPort = DEFAULT_WEBHOOK_SERVER_PORT;
@@ -141,7 +142,7 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
 
 NukiBridge.prototype._addWebhookToBridge = function _addWebhookToBridge() {
     this.log("Adding webhook for plugin to bridge...");
-    var callbackList = (function(err, json) {
+    var callbackWebhookList = (function(err, json) {
         if(err) {
             throw new Error("Request for webhooks failed: "+err);
         }
@@ -163,7 +164,7 @@ NukiBridge.prototype._addWebhookToBridge = function _addWebhookToBridge() {
             }
         }
     }).bind(this);
-    this._getCallbacks(callbackList);
+    this._getCallbacks(callbackWebhookList);
 };
 
 NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest) {
@@ -176,7 +177,7 @@ NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest)
         );
     }
     else {
-        this._addToQueue({callbackList: callback});
+        this._addToQueue({callbackWebhookList: callback});
     }
 };
 
@@ -198,11 +199,11 @@ NukiBridge.prototype._addCallback = function _addCallback(doRequest) {
         );
     }
     else {
-        this._addToQueue({callbackAdd: true});
+        this._addToQueue({callbackWebhookAdd: true});
     }
 };
 
-NukiBridge.prototype.addLock = function addLock(nukiLock) {
+NukiBridge.prototype._addLock = function _addLock(nukiLock) {
     nukiLock.instanceId = this.locks.length;
     this.locks.push(nukiLock);
 };
@@ -220,7 +221,7 @@ NukiBridge.prototype._getLock = function _getLock(id, ignoreDoorsWithDoorLatches
     return null;
 };
 
-NukiBridge.prototype.lockState = function lockState(nukiLock, callbacks /*(err, json)*/, doRequest) {
+NukiBridge.prototype._lockState = function _lockState(nukiLock, callbacks /*(err, json)*/, doRequest) {
     if(!this.runningRequest && doRequest) {
         var singleCallBack = (function(err, json) {
             for (var i = 0; i < callbacks.length; i++) {
@@ -235,11 +236,56 @@ NukiBridge.prototype.lockState = function lockState(nukiLock, callbacks /*(err, 
         );
     }
     else {
-        this._addToQueue({nukiLock: nukiLock, callbacks: callbacks});
+        this._addToQueue({nukiLock: nukiLock, callbacksLockState: callbacks});
     }
 };
 
-NukiBridge.prototype.lockAction = function lockAction(nukiLock, lockAction, callback /*(err, json)*/, doRequest) {
+NukiBridge.prototype._lastKnownlockState = function _lastKnownlockState(nukiLock, callbacks /*(err, json)*/, doRequest) {
+    if(!this.runningRequest && doRequest) {
+        var singleCallBack = (function(err, json) {
+            if(!err && !json) {
+                err = new Error("Error retrieving last known lock state.");
+            }
+            if(err) {
+                for (var j = 0; j < callbacks.length; j++) {
+                    callbacks[j](err, json);
+                }
+            }
+            else {
+                for (var k = 0; k < callbacks.length; k++) {
+                    var lastKnownlockStateCallback = callbacks[k];
+                    var callbackNukiId = lastKnownlockStateCallback.nukiLock.id;
+                    var lockErr = new Error("Error retrieving last known lock state for '"+callbackNukiId+"'.");
+                    var stateJson = null;
+                    for (var i = 0; i < json.length; i++) {
+                        var jsonLock = json[i];
+                        if(jsonLock.nukiId+"" === callbackNukiId) {
+                            //TODO an API anpassen
+                            var stateJson = {
+                                state: jsonLock.nukiId+"" === "63120361" ? 1: 3,
+                                batteryCritical: true
+                            };
+                            lockErr = null;
+                            break;
+                        }
+                    }
+                    lastKnownlockStateCallback(lockErr, stateJson);
+                }
+            }
+        }).bind(this);
+        this._sendRequest(
+            "/list",
+            { token: this.apiToken},
+            this.requestTimeoutLockState,
+            singleCallBack
+        );
+    }
+    else {
+        this._addToQueue({nukiLock: nukiLock, callbacksLastKnownLockState: callbacks});
+    }
+};
+
+NukiBridge.prototype._lockAction = function _lockAction(nukiLock, lockAction, callback /*(err, json)*/, doRequest) {
     if(!this.runningRequest, doRequest) {
         this.log("Process lock action '%s' for Nuki lock '%s' (instance id '%s') on Nuki bridge '%s'.", lockAction, nukiLock.id, nukiLock.instanceId, this.bridgeUrl);
         this._sendRequest(
@@ -289,8 +335,9 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
 
 NukiBridge.prototype._addToQueue = function _addToQueue(queueEntry) {
     var wasReplaced = this._replaceQueueEntryForLockAction(queueEntry);
-    var wasAdded = this._addLockStateRequestCallbacksToExisting(queueEntry);
-    if(!wasReplaced && !wasAdded) {
+    var wasAddedToLastState = this._addLockStateRequestCallbacksToExisting(queueEntry);
+    var wasAddedToLastKnownState = this._addLastKnownLockStateRequestCallbacksToExisting(queueEntry);
+    if(!wasReplaced && !wasAddedToLastState && !wasAddedToLastKnownState) {
         this.queue.push(queueEntry);
     }
     
@@ -305,7 +352,7 @@ NukiBridge.prototype._addToQueue = function _addToQueue(queueEntry) {
         if(!this.runningRequest) {
             this._processNextQueueEntry();
         }
-    }).bind(this),  1000);
+    }).bind(this),  500);
 };
 
 NukiBridge.prototype._replaceQueueEntryForLockAction = function _replaceQueueEntryForLockAction(queueEntry) {
@@ -329,11 +376,25 @@ NukiBridge.prototype._addLockStateRequestCallbacksToExisting = function _addLock
     for (var i = 0; i < this.queue.length; i++) {
         var alreadyQueuedEntry = this.queue[i];
         var sameLock = queueEntry.nukiLock && alreadyQueuedEntry.nukiLock && queueEntry.nukiLock.id == alreadyQueuedEntry.nukiLock.id;
-        var bothLockState = !queueEntry.lockAction && !alreadyQueuedEntry.lockAction;
+        var bothLockState = queueEntry.callbacksLockState && alreadyQueuedEntry.callbacksLockState;
         var addCallbacks = sameLock && bothLockState;
         if(addCallbacks) {
             wasAdded = true;
-            alreadyQueuedEntry.callbacks = alreadyQueuedEntry.callbacks.concat(queueEntry.callbacks);
+            alreadyQueuedEntry.callbacksLockState = alreadyQueuedEntry.callbacksLockState.concat(queueEntry.callbacksLockState);
+        }
+    }
+    return wasAdded;
+};
+
+NukiBridge.prototype._addLastKnownLockStateRequestCallbacksToExisting = function _addLastKnownLockStateRequestCallbacksToExisting(queueEntry) {
+    var wasAdded = false;
+    for (var i = 0; i < this.queue.length; i++) {
+        var alreadyQueuedEntry = this.queue[i];
+        var bothLastKnownLockState = queueEntry.callbacksLastKnownLockState && alreadyQueuedEntry.callbacksLastKnownLockState;
+        var addCallbacks = bothLastKnownLockState;
+        if(addCallbacks) {
+            wasAdded = true;
+            alreadyQueuedEntry.callbacksLastKnownLockState = alreadyQueuedEntry.callbacksLastKnownLockState.concat(queueEntry.callbacksLastKnownLockState);
         }
     }
     return wasAdded;
@@ -345,17 +406,23 @@ NukiBridge.prototype._processNextQueueEntry = function _processNextQueueEntry() 
         var doRequest = true;
         if(queueEntry.nukiLock) {
             if(queueEntry.lockAction) {
-                this.lockAction(queueEntry.nukiLock, queueEntry.lockAction, queueEntry.callback, doRequest);
+                this._lockAction(queueEntry.nukiLock, queueEntry.lockAction, queueEntry.callback, doRequest);
             }
-            else {
-                this.lockState(queueEntry.nukiLock, queueEntry.callbacks, doRequest);
+            else if(queueEntry.callbacksLockState) {
+                this._lockState(queueEntry.nukiLock, queueEntry.callbacksLockState, doRequest);
             }
+            else if(queueEntry.callbacksLastKnownLockState) {
+                this._lastKnownlockState(queueEntry.nukiLock, queueEntry.callbacksLastKnownLockState, doRequest);
+            }
+        }
+        else if (queueEntry.callbackWebhookList) {
+            this._getCallbacks(queueEntry.callbackWebhookList, doRequest);
+        }
+        else if (queueEntry.callbackWebhookAdd) {
+            this._addCallback(doRequest);
         }
         else if (queueEntry.callbackList) {
-            this._getCallbacks(queueEntry.callbackList, doRequest);
-        }
-        else if (queueEntry.callbackAdd) {
-            this._addCallback(doRequest);
+            this._getList(queueEntry.callbackList, doRequest);
         }
     }
 };
@@ -379,7 +446,7 @@ function NukiLock(log, nukiBridge, id, lockAction, unlockAction, priority, webHo
         this.priority = DEFAULT_PRIORITY;
     }
     
-    this.nukiBridge.addLock(this);
+    this.nukiBridge._addLock(this);
     
     var callbackIsLocked = (function(err, json) {
         this.log("Initial is locked request finished.");
@@ -400,7 +467,7 @@ NukiLock.prototype.isLocked = function isLocked(callback /*(err, isLocked)*/, fo
         callback(null, locked);
     }
     else {
-        if(forceRequest || this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUESTS) {
+        if(forceRequest || this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUEST_LOCKSTATE || this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUEST_LASTKNOWNLOCKSTATE) {
             var callbackWrapper = (function(err, json) {
                 if(err) {
                     var cachedIsLocked = this._getIsLockedCached();
@@ -420,7 +487,13 @@ NukiLock.prototype.isLocked = function isLocked(callback /*(err, isLocked)*/, fo
                     callback(null, isLocked);
                 }
             }).bind(this);
-            this.nukiBridge.lockState(this, [callbackWrapper]);
+            callbackWrapper.nukiLock = this;
+            if(this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUEST_LASTKNOWNLOCKSTATE) {
+                this.nukiBridge._lastKnownlockState(this, [callbackWrapper]);
+            }
+            else {
+                this.nukiBridge._lockState(this, [callbackWrapper]);
+            }            
         }
         else {
             var cachedIsLocked = this._getIsLockedCached();
@@ -456,7 +529,7 @@ NukiLock.prototype.lock = function lock(callback) {
             }
             callback(err, json);
         }).bind(this);
-        this.nukiBridge.lockAction(this, this.lockAction, callbackWrapper);
+        this.nukiBridge._lockAction(this, this.lockAction, callbackWrapper);
     }
 };
 
@@ -467,7 +540,7 @@ NukiLock.prototype.unlock = function unlock(callback) {
         }
         callback(err, json);
     }).bind(this);
-    this.nukiBridge.lockAction(this, this.unlockAction, callbackWrapper);
+    this.nukiBridge._lockAction(this, this.unlockAction, callbackWrapper);
 };
 
 NukiLock.prototype._getIsLockedCached = function _getIsLockedCached() {
