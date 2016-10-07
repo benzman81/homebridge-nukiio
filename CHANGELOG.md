@@ -1,3 +1,10 @@
+## 0.5.5
+
+Bugfix:
+
+  - If an error occured calling a lock action, then the state will be set to unkown.
+  - Finally fixed state issue for state update from background (i.e. for Webhooks and doors with door latches).
+
 ## 0.5.4
 
 Bugfix:

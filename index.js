@@ -75,9 +75,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
         
     var webHookCallback = (function(isLocked, batteryCritical) {
         var newHomeKitStateLocked = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-        var newHomeKitStateLockedCurrent = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
         var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-        this.lockService.getCharacteristic(Characteristic.LockCurrentState).setValue(newHomeKitStateLockedCurrent, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
         this.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND); 
         this.battservice.getCharacteristic(Characteristic.StatusLowBattery).setValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
         this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
@@ -100,8 +98,8 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
     else {   
         var lockStateChangeCallback = (function(err, json){
             if(err) {
-                this.log("An error occured processing lock action. Reason: %s", err);
-                callback(err);
+                this.log("An error occured processing lock action. State will be unkown. Reason: %s", err);
+                this.lockService.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNKNOWN);   
             }
             else {
                 this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
@@ -112,14 +110,16 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
                         this.log("HomeKit change for door latch back to locked state complete.");
                     }).bind(this), 1000);
                 }
-                
-                callback(null);
-                this.log("HomeKit state change complete.");
             }
+            callback(null);
+            this.log("HomeKit state change complete.");
         }).bind(this);
         
         if(context === CONTEXT_FROM_NUKI_BACKGROUND) {
             this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
+            if(callback) {
+                callback(null);
+            }
             this.log("HomeKit state change complete from Background.");
         }
         else {

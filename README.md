@@ -5,8 +5,7 @@ Nuki.io support for Homebridge: https://github.com/nfarina/homebridge
 
 #Current state
 The plugin is currently under heavy development, as it needs to be better balanced with the hardware brige. 
-Currently there is still an issue where the state of a door might be displayed wrong in the app if it was open and a state change occurs through webhook or a door with door latch.
-The restart issue of the bridge seems to be fixed by firmware update 1.2.9.
+There is still some restart issue of the bridge that seemed to be fixed by firmware update 1.2.9 but wasn't.
 
 # Configuration
 Example config.json:
