@@ -3,11 +3,13 @@
 New features:
 
   - First steps to implement lock requst mode "2". This is not supported yet, as the firmware of the bridge is not published, yet.
+  - Added methods to bride for reboot, firmware update, and for refreshing all locks.
 
 Bugfix:
 
   - Changed some methods to be marked as private.
   - Update of README.md.
+  - Changed text for AccessoryInformation.
 
 ## 0.5.5
 

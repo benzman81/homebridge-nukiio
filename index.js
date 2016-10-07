@@ -49,9 +49,9 @@ function NukiLockAccessory(log, config, nukiBridge) {
     
     this.informationService = new Service.AccessoryInformation();
     this.informationService
-        .setCharacteristic(Characteristic.Manufacturer, "Nuki")
-        .setCharacteristic(Characteristic.Model, "Nuki Lock")
-        .setCharacteristic(Characteristic.SerialNumber, "NukiId "+this.id);
+        .setCharacteristic(Characteristic.Manufacturer, "Nuki.io")
+        .setCharacteristic(Characteristic.Model, "Nuki.io Lock")
+        .setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id "+this.id);
     
     this.lockService = new Service.LockMechanism(this.name);
     this.lockService

@@ -23,6 +23,7 @@ var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 45000;
 var DEFAULT_WEBHOOK_SERVER_PORT = 51827;
 var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 var DEFAULT_PRIORITY = 99;
+var REBOOT_WAIT_TIME = 45000;
 
 var LOCK_STATE_MODE_REQUEST_LOCKSTATE = 0;
 var LOCK_STATE_MODE_ONLY_CACHE = 1;
@@ -203,6 +204,65 @@ NukiBridge.prototype._addCallback = function _addCallback(doRequest) {
     }
 };
 
+NukiBridge.prototype.reboot = function reboot(callback, doRequest) {
+    if(!this.runningRequest && doRequest) {
+        var callbackWrapper = (function(err, json) {
+            setTimeout((function(){ 
+                callback(err, json);
+            }).bind(this),  REBOOT_WAIT_TIME);
+        }).bind(this);
+        this._sendRequest(
+            "/reboot",
+            { token: this.apiToken},
+            this.requestTimeoutLockAction,
+            callbackWrapper
+        );
+    }
+    else {
+        this._addToQueue({callbackReboot: callback});
+    }
+};
+
+NukiBridge.prototype.updateFirmware = function updateFirmware(callback, doRequest) {
+    if(!this.runningRequest && doRequest) {
+        var callbackWrapper = (function(err, json) {
+            setTimeout((function(){ 
+                callback(err, json);
+            }).bind(this),  REBOOT_WAIT_TIME);
+        }).bind(this);
+        this._sendRequest(
+            "/fwupdate",
+            { token: this.apiToken},
+            this.requestTimeoutLockAction,
+            callbackWrapper
+        );
+    }
+    else {
+        this._addToQueue({callbackFirmware: callback});
+    }
+};
+
+NukiBridge.prototype.refreshAllLocks = function refreshAllLocks(callback) {
+    var locksToCheck = [];
+    for (var i = 0; i < this.locks.length; i++) {
+        var lock = this.locks[i];
+        if(lock.isDoorLatch()) {
+            continue;
+        }
+        locksToCheck.push(lock);
+    }
+    var singleLockCallback = (function(params, err, json) {
+        params.locksChecked = params.locksChecked + 1;
+        if(params.locksChecked === params.locksToCheckNum) {
+            callback();
+        }
+    }).bind(this,{locksToCheckNum: locksToCheck.length, locksChecked: 0});
+    for (var i = 0; i < locksToCheck.length; i++) {
+        var lockToCheck = locksToCheck[i];
+        lockToCheck.isLocked(singleLockCallback,true);
+    }
+};
+
 NukiBridge.prototype._addLock = function _addLock(nukiLock) {
     nukiLock.instanceId = this.locks.length;
     this.locks.push(nukiLock);
@@ -311,7 +371,10 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
         var statusCode = response && response.statusCode ? response.statusCode: -1;
         this.log("Request to Nuki bridge '%s' finished with status code '%s' and body '%s'.", this.bridgeUrl, statusCode, body, err);
         if (!err && statusCode == 200) {
-            var json = JSON.parse(body);
+            var json = {};
+            if(body !== "") {
+                json = JSON.parse(body);
+            }
             var success = json.success;
             if(json.hasOwnProperty('success')) {
                 if(success == "true" || success == true) {
@@ -423,6 +486,12 @@ NukiBridge.prototype._processNextQueueEntry = function _processNextQueueEntry() 
         }
         else if (queueEntry.callbackList) {
             this._getList(queueEntry.callbackList, doRequest);
+        }
+        else if (queueEntry.callbackReboot) {
+            this.reboot(queueEntry.callbackReboot, doRequest);
+        }
+        else if (queueEntry.callbackFirmware) {
+            this.updateFirmware(queueEntry.callbackFirmware, doRequest);
         }
     }
 };
