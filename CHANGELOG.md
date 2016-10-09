@@ -1,3 +1,9 @@
+## 0.6.1
+
+Bugfix:
+
+  - Button to refresh all now also pushes refreshed states to HomeKit.
+
 ## 0.6.0
 
 New features:

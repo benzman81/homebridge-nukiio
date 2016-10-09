@@ -535,7 +535,7 @@ NukiLock.prototype.isLocked = function isLocked(callback /*(err, isLocked)*/, fo
         if(forceRequest || this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUEST_LOCKSTATE || this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUEST_LASTKNOWNLOCKSTATE) {
             var callbackWrapper = (function(err, json) {
                 if(err) {
-                    var cachedIsLocked = this._getIsLockedCached();
+                    var cachedIsLocked = this.getIsLockedCached();
                     this.log("Request for lock state aborted. This is no problem and might happen due to canceled request or due to long response time of the Nuki bridge. Using cached value isLocked = '%s'.", cachedIsLocked);
                     callback(null, cachedIsLocked);
                 }
@@ -561,7 +561,7 @@ NukiLock.prototype.isLocked = function isLocked(callback /*(err, isLocked)*/, fo
             }            
         }
         else {
-            var cachedIsLocked = this._getIsLockedCached();
+            var cachedIsLocked = this.getIsLockedCached();
             this.log("Cached lock state is isLocked = '%s'.", cachedIsLocked);
             callback(null, cachedIsLocked);
         }
@@ -608,7 +608,7 @@ NukiLock.prototype.unlock = function unlock(callback) {
     this.nukiBridge._lockAction(this, this.unlockAction, callbackWrapper);
 };
 
-NukiLock.prototype._getIsLockedCached = function _getIsLockedCached() {
+NukiLock.prototype.getIsLockedCached = function getIsLockedCached() {
     if(this.isDoorLatch()) {
         return true;
     }
@@ -633,7 +633,7 @@ NukiLock.prototype._getIsBatteryLowCached = function _getIsBatteryLowCached() {
 NukiLock.prototype._setLockCache = function _setLockCache(isLocked, batteryCritical) {
     if(!this.isDoorLatch()) {
         var newCache = {
-            isLocked: this._getIsLockedCached(),
+            isLocked: this.getIsLockedCached(),
             batteryCritical: this._getIsBatteryLowCached()
         }
         if(isLocked !== undefined && isLocked !== null) {

@@ -33,14 +33,16 @@ NukiBridgePlatform.prototype = {
 
     accessories: function(callback) {
         var accessories = [];
+        var locks = [];
         for(var i = 0; i < this.locks.length; i++){
             var lock = new NukiLockAccessory(this.log, this.locks[i], this.nukiBridge);
             accessories.push(lock);
+            locks.push(lock);
         }
         if(this.addMaintainanceButtons) {
-            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge));
-            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-fwupdate", "Nuki Bridge Firmware Update", this.nukiBridge));
-            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-refreshall", "Nuki Bridge Refresh All", this.nukiBridge));
+            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge, locks));
+            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-fwupdate", "Nuki Bridge Firmware Update", this.nukiBridge, locks));
+            accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-refreshall", "Nuki Bridge Refresh All", this.nukiBridge, locks));
         }
         callback(accessories);
     }
@@ -163,11 +165,12 @@ NukiLockAccessory.prototype.getServices = function() {
   return [this.lockService, this.informationService, this.battservice];
 };
 
-function NukiBridgeMaintainanceSwitchAccessory(log, id, name, nukiBridge) {
+function NukiBridgeMaintainanceSwitchAccessory(log, id, name, nukiBridge, nukiLockAccessories) {
     this.log = log;
     this.id = id;
     this.name = name;
     this.nukiBridge = nukiBridge;
+    this.nukiLockAccessories = nukiLockAccessories;
     
     this.switchService = new Service.Switch(this.name);
     this.switchService
@@ -195,20 +198,40 @@ NukiBridgeMaintainanceSwitchAccessory.prototype.setState = function(powerOn, cal
     this.log("Switch state for '%s' to '%s'...", this.id, powerOn);
     this.nukiBridge.storage.setItemSync('bridge-'+this.nukiBridge.bridgeUrl+'-'+this.id+'-cache', false);
     if(powerOn) {
-        var callbackWrapper = (function(err, json) {
-            callback(null);
-            setTimeout((function(){ 
-                this.switchService.getCharacteristic(Characteristic.On)
-                    .setValue(false, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-            }).bind(this), 2500);
-        }).bind(this);
         if(this.id === "maintainance-switch-reboot") {
+            var callbackWrapper = (function(err, json) {
+                callback(null);
+                setTimeout((function(){ 
+                    this.switchService.getCharacteristic(Characteristic.On)
+                        .setValue(false, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+                }).bind(this), 2500);
+            }).bind(this);
             this.nukiBridge.reboot(callbackWrapper);
         }
         else if(this.id === "maintainance-switch-fwupdate") {
+            var callbackWrapper = (function(err, json) {
+                callback(null);
+                setTimeout((function(){ 
+                    this.switchService.getCharacteristic(Characteristic.On)
+                        .setValue(false, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+                }).bind(this), 2500);
+            }).bind(this);
             this.nukiBridge.updateFirmware(callbackWrapper);
         }
         else if(this.id === "maintainance-switch-refreshall") {
+            var callbackWrapper = (function(err, json) {
+                callback(null);
+                setTimeout((function(){ 
+                    this.switchService.getCharacteristic(Characteristic.On)
+                        .setValue(false, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+                }).bind(this), 2500);
+                for (var i = 0; i < this.nukiLockAccessories.length; i++) {
+                    var nukiLockAccessory = this.nukiLockAccessories[i];
+                    var isLockedCached = nukiLockAccessory.nukiLock.getIsLockedCached();
+                    var newHomeKitStateLocked = isLockedCached ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+                    nukiLockAccessory.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+                }
+            }).bind(this);
             this.nukiBridge.refreshAllLocks(callbackWrapper);
         }
     }
