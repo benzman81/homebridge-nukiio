@@ -1,3 +1,9 @@
+## 0.6.3
+
+Bugfix:
+
+  - Initial lock state request now works for lock state mode 1.
+
 ## 0.6.2
 
 Bugfix:

@@ -518,7 +518,7 @@ function NukiLock(log, nukiBridge, id, lockAction, unlockAction, priority, webHo
     var callbackIsLocked = (function(err, json) {
         this.log("Initial is locked request finished.");
     }).bind(this);
-    if(this.lockStateMode === LOCK_STATE_MODE_ONLY_CACHE) {
+    if(this.nukiBridge.lockStateMode === LOCK_STATE_MODE_ONLY_CACHE) {
         this.isLocked(callbackIsLocked,true);
     }
 };
