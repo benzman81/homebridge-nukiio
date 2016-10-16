@@ -1,3 +1,9 @@
+## 0.6.2
+
+Bugfix:
+
+  - In case of a connection error during a lock action assume that it was successful. In rare cases this might be wrong, but in most cases I experienced a connection error the lock action was executed succesfully.
+
 ## 0.6.1
 
 Bugfix:

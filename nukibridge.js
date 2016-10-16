@@ -377,7 +377,9 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
                     callback(null, json);
                 }
                 else {
-                    callback(new Error("Request to Nuki bridge was not succesful."));
+                    var nukiUnsuccessfulError = new Error("Request to Nuki bridge was not succesful.");
+                    nukiUnsuccessfulError.nukiUnsuccessfulError = true;
+                    callback(nukiUnsuccessfulError);
                 }
             }
             else {
@@ -589,7 +591,7 @@ NukiLock.prototype.lock = function lock(callback) {
     }
     else{
         var callbackWrapper = (function(err, json) {
-            if(!err) {
+            if(!err || !err.nukiUnsuccessfulError) {
                 this._setLockCache(true);
             }
             callback(err, json);
@@ -600,7 +602,7 @@ NukiLock.prototype.lock = function lock(callback) {
 
 NukiLock.prototype.unlock = function unlock(callback) {
     var callbackWrapper = (function(err, json) {
-        if(!err) {
+        if(!err || !err.nukiUnsuccessfulError) {
             this._setLockCache(false);
         }
         callback(err, json);

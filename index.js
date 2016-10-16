@@ -104,21 +104,25 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
     }
     else {   
         var lockStateChangeCallback = (function(err, json){
-            if(err) {
-                this.log("An error occured processing lock action. State will be unkown. Reason: %s", err);
-                this.lockService.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNKNOWN);   
+            this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
+            if(err && err.nukiUnsuccessfulError) {
+                callback(err);
+                this.log("An error occured processing lock action. Reason: %s", err);
+            }
+            else if(err) {
+                callback(null);
+                this.log("An error occured processing lock action. Reason: %s", err);  
+            }
+            else if(this.nukiLock.isDoorLatch() && !doLock) {
+                callback(null);
+                setTimeout((function(){
+                    this.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(Characteristic.LockTargetState.SECURED, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+                    this.log("HomeKit change for door latch back to locked state complete.");
+                }).bind(this), 1000);
             }
             else {
-                this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
-                
-                if(this.nukiLock.isDoorLatch() && !doLock) {
-                    setTimeout((function(){
-                        this.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(Characteristic.LockTargetState.SECURED, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-                        this.log("HomeKit change for door latch back to locked state complete.");
-                    }).bind(this), 1000);
-                }
+                callback(null);
             }
-            callback(null);
             this.log("HomeKit state change complete.");
         }).bind(this);
         
