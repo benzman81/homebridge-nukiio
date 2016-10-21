@@ -1,3 +1,9 @@
+## 0.6.4
+
+New features:
+
+  - Lock actions will now be called one more time if bridge returns success = false. This can happen due to connection issues.
+
 ## 0.6.3
 
 Bugfix:

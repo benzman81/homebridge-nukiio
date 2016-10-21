@@ -103,17 +103,31 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
         callback(null);
     }
     else {   
-        var lockStateChangeCallback = (function(err, json){
-            this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
+        var lockStateChangeCallback = (function(params, err, json){
             if(err && err.nukiUnsuccessfulError) {
-                callback(err);
-                this.log("An error occured processing lock action. Reason: %s", err);
+                if(params.lockTry < 2) {
+                    this.log("An error occured processing lock action. Will retry now...");
+                    params.lockTry = params.lockTry + 1;
+                    if(doLock) {
+                        this.nukiLock.lock(lockStateChangeCallback);
+                    }
+                    else {
+                        this.nukiLock.unlock(lockStateChangeCallback);
+                    }
+                }
+                else {
+                    this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
+                    callback(err);
+                    this.log("An error occured processing lock action after retrying multiple times. Reason: %s", err);
+                }
             }
             else if(err) {
+                this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
                 callback(null);
                 this.log("An error occured processing lock action. Reason: %s", err);  
             }
             else if(this.nukiLock.isDoorLatch() && !doLock) {
+                this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
                 callback(null);
                 setTimeout((function(){
                     this.lockService.getCharacteristic(Characteristic.LockTargetState).setValue(Characteristic.LockTargetState.SECURED, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
@@ -121,10 +135,11 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
                 }).bind(this), 1000);
             }
             else {
+                this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
                 callback(null);
             }
             this.log("HomeKit state change complete.");
-        }).bind(this);
+        }).bind(this, {lockTry: 1});
         
         if(context === CONTEXT_FROM_NUKI_BACKGROUND) {
             this.lockService.setCharacteristic(Characteristic.LockCurrentState, newHomeKitState);
