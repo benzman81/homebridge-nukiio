@@ -111,7 +111,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
         this.battservice.getCharacteristic(Characteristic.StatusLowBattery).setValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
         this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
     }).bind(this);
-    this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, this.usesDoorLatch, config["priority"], webHookCallback);
+    this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], webHookCallback);
 };
 
 NukiLockAccessory.prototype.getState = function(callback) {
