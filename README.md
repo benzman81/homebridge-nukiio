@@ -1,4 +1,6 @@
+**NOTE: Since version 0.7.0 lock and unlock actions are no longer supported, for now. Use 'usesDoorLatch' for doors with door latch.**
 **NOTE: Since version 0.4.0 the configuration changed to platform. You must fix your configuration to match the new configuration format.**
+
 ***
 # homebridge-nukiio
 Nuki.io support for Homebridge: https://github.com/nfarina/homebridge 
@@ -27,8 +29,7 @@ Example config.json:
                     {
                         "id": "your-lock-id",
                         "name": "Front Door",
-                        "lock_action" : "2", // (from Nuki API, optional, default: "2")
-                        "unlock_action" : "1", // (from Nuki API, optional, default: "1")
+                        "usesDoorLatch" : true, // (default: false)
                         "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
                     }
                 ]
@@ -54,9 +55,9 @@ If the configuration parameter "webhook_server_ip_or_name" is set, than the plug
 *Note: An automatically added Webhook does not get removed ever, so you need to do it manually if you don't need it anymore.*
 
 ## Doors with door latches
-If you own a door with a door latch, than you can add the same lock twices. On the second entry you set "lock_action" and "unlock_action" to "3".
-This way you get an additional lock accessory that shows always locked state and always does an unlatch. The additional lock will not change its battery status to save bridge calls since the other lock will already show correct battery status.
-
+You can define if a door uses a door latch by setting 'usesDoorLatch' to true. If you do so, than three locks will be added to homekit. One that unlocks the door pulling the door latch ("lockname Unlatch"), one that unlocks the door without
+pulling the door latch ("lockname"), and one that always is display as locked and pulls the door latch on unlock ("lockname ALWAYS Unlatch").
+    
 # Additional information
 The plugin uses the Nuki API of the bridge. The API token can be configured via the Nuki app when enabling the API.
 The plugin was build on Nuki API documentation v1.0.3. Valid values for lock action and unlock action can be found in the Nuki API documentation.

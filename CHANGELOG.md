@@ -1,3 +1,12 @@
+## 0.7.0
+
+Feature changes and removal:
+
+  - Door latch handling changed. You can no longer define lock and unlock actions. Instead you need to define if a door uses a door latch.
+    If so, than three locks will be added to homekit. One that unlocks the door pulling the door latch, one that unlocks the door without
+    pulling the door latch, and one that always is display as locked and pulls the door latch on unlock.
+  - You cannot add multiple locks with the same id anymore.
+
 ## 0.6.4
 
 New features:
