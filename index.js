@@ -61,7 +61,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
         .setCharacteristic(Characteristic.Model, "Nuki.io Lock")
         .setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id "+this.id);
     
-    this.lockServiceUnlock = new Service.LockMechanism(this.name);
+    this.lockServiceUnlock = new Service.LockMechanism(this.name, this.name);
     this.lockServiceUnlock
         .getCharacteristic(Characteristic.LockCurrentState)
         .on('get', this.getState.bind(this));
@@ -71,7 +71,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
         .on('set', this.setState.bind(this, "unlock"));
     
     if(this.usesDoorLatch) {
-        this.lockServiceUnlatch = new Service.LockMechanism(this.name + " Unlatch");
+        this.lockServiceUnlatch = new Service.LockMechanism(this.name + " Unlatch", this.name + " Unlatch");
         this.lockServiceUnlatch
             .getCharacteristic(Characteristic.LockCurrentState)
             .on('get', this.getState.bind(this));
@@ -80,7 +80,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
             .on('get', this.getState.bind(this))
             .on('set', this.setState.bind(this, "unlatch"));
         
-        this.lockServiceAlwaysUnlatch = new Service.LockMechanism(this.name + " ALWAYS Unlatch");
+        this.lockServiceAlwaysUnlatch = new Service.LockMechanism(this.name + " ALWAYS Unlatch", this.name + " ALWAYS Unlatch");
         this.lockServiceAlwaysUnlatch
             .getCharacteristic(Characteristic.LockCurrentState)
             .on('get', this.getStateAlwaysUnlatch.bind(this));
