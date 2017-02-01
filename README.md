@@ -1,4 +1,4 @@
-**NOTE: Since version 0.7.0 lock and unlock actions are no longer supported, for now. Use 'usesDoorLatch' for doors with door latch.**
+**NOTE: Since version 0.7.0 the configuration keys for lock and unlock actions are no longer supported, for now. Use 'usesDoorLatch' for doors with door latch.**
 
 **NOTE: Since version 0.4.0 the configuration changed to platform. You must fix your configuration to match the new configuration format.**
 

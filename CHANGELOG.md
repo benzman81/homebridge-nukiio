@@ -1,3 +1,9 @@
+## 0.7.1
+
+Bugfix:
+
+  - Fixed README.
+
 ## 0.7.0
 
 Feature changes and removal:
