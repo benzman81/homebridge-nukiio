@@ -18,6 +18,11 @@ global.NUKI_LOCK_STATE_UNLATCHING = 7;
 global.NUKI_LOCK_STATE_MOTOR_BLOCKED = 254;
 global.NUKI_LOCK_STATE_UNDEFINED = 255;
 
+global.HOMEKIT_LOCK_STATE_UNSECURED = 0;
+global.HOMEKIT_LOCK_STATE_SECURED = 1;
+global.HOMEKIT_LOCK_STATE_JAMMED = 2;
+global.HOMEKIT_LOCK_STATE_UNKNOWN = 3;
+
 var DEFAULT_REQUEST_TIMEOUT_LOCK_STATE = 15000;
 var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 45000;
 var DEFAULT_WEBHOOK_SERVER_PORT = 51827;
@@ -510,9 +515,8 @@ NukiLock.prototype.isLocked = function isLocked(callback /*(err, isLocked)*/, fo
     if(forceRequest || this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUEST_LOCKSTATE || this.nukiBridge.lockStateMode === LOCK_STATE_MODE_REQUEST_LASTKNOWNLOCKSTATE) {
         var callbackWrapper = (function(err, json) {
             if(err) {
-                var cachedIsLocked = this.getIsLockedCached();
-                this.log("Request for lock state aborted. This is no problem and might happen due to canceled request or due to long response time of the Nuki bridge. Using cached value isLocked = '%s'.", cachedIsLocked);
-                callback(null, cachedIsLocked);
+                this.log("Request for lock state aborted. This might happen due to canceled request or due to long response time of the Nuki bridge.");
+                callback(null, NUKI_LOCK_STATE_UNDEFINED);
             }
             else {
                 var state = NUKI_LOCK_STATE_UNDEFINED;
@@ -547,12 +551,20 @@ NukiLock.prototype.getLowBatt = function getLowBatt(callback /*(err, lowBattt)*/
 };
 
 NukiLock.prototype._isLocked = function _isLocked(state) {
-    var isLocked = 
-        state == NUKI_LOCK_STATE_LOCKED || 
-        state == NUKI_LOCK_STATE_LOCKING || 
-        state == NUKI_LOCK_STATE_UNCALIBRATED || 
-        state == NUKI_LOCK_STATE_MOTOR_BLOCKED || 
-        state == NUKI_LOCK_STATE_UNDEFINED;
+    var isLocked = HOMEKIT_LOCK_STATE_UNKNOWN;
+    switch(state) {
+        case NUKI_LOCK_STATE_LOCKED:
+            isLocked = HOMEKIT_LOCK_STATE_SECURED;
+            break;  	
+        case NUKI_LOCK_STATE_MOTOR_BLOCKED:
+            isLocked = HOMEKIT_LOCK_STATE_JAMMED;
+            break;
+	case NUKI_LOCK_STATE_UNCALIBRATED, NUKI_LOCK_STATE_UNDEFINED:
+            isLocked = HOMEKIT_LOCK_STATE_UNKNOWN;
+            break;
+        default:
+            isLocked = HOMEKIT_LOCK_STATE_UNSECURED;
+    }
     return isLocked;
 };
 
