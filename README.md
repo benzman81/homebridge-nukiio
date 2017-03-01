@@ -7,8 +7,14 @@
 Nuki.io support for Homebridge: https://github.com/nfarina/homebridge 
 
 # Current state
-The plugin is currently under heavy development, as it needs to be better balanced with the hardware brige. 
-There is still some restart issue of the bridge that seemed to be fixed by firmware update 1.2.9 but wasn't.
+Seems to work solid. Feel free to create new issues in github for any problems.
+
+# Requirements
+You need the following information from your bridge for the configuration:
+- You must activate the developer mode on you bridge
+- The URL to your bridge, IP and port can be configured when setting up the bridge in the Nuki App, example http://10.0.0.1:8080
+- The API token, can be configured when setting up the bridge in the Nuki App
+- The nuki id of your locks, can be found when calling http://your-nuki-bridge-url/info?token=your-nuki-api-token in a browser
 
 # Configuration
 Example config.json:
@@ -28,7 +34,7 @@ Example config.json:
                 "add_maintainance_buttons": false, // (optional, default: false, if set to true, than three switches will be added as accessory to do reboot, firmware update, and to refresh all locks state)
                 "locks": [
                     {
-                        "id": "your-lock-id",
+                        "id": "your-lock-nukiid",
                         "name": "Front Door",
                         "usesDoorLatch" : true, // (default: false)
                         "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
