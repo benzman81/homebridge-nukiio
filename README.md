@@ -14,7 +14,7 @@ You need the following information from your bridge for the configuration:
 - You must activate the developer mode on you bridge
 - The URL to your bridge, IP and port can be configured when setting up the bridge in the Nuki App, example http://10.0.0.1:8080
 - The API token, can be configured when setting up the bridge in the Nuki App
-- The nuki id of your locks, can be found when calling http://your-nuki-bridge-url/info?token=your-nuki-api-token in a browser
+- The nuki id of your locks, can be found when calling http://your-nuki-bridge-url/list?token=your-nuki-api-token in a browser
 
 # Configuration
 Example config.json:
