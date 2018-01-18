@@ -1,3 +1,9 @@
+## 0.7.3
+
+Bugfix:
+
+  - Fixed some issues updating state correctly.
+
 ## 0.7.2
 
 Bugfix:
