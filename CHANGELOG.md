@@ -1,3 +1,9 @@
+## 0.7.4
+
+Bugfix:
+
+  - Fixed some issues updating state for "always unlock" and "always unlatch".
+
 ## 0.7.3
 
 Bugfix:
