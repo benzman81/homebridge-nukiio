@@ -121,7 +121,7 @@ NukiLockAccessory.prototype.getState = function(callback) {
     var callbackIsLocked = (function(err, isLocked) {
         callback(err, isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED);
     }).bind(this);
-    this.nukiLock.isLocked(callback);
+    this.nukiLock.isLocked(callbackIsLocked);
 };
 
 NukiLockAccessory.prototype.getStateAlwaysUnlatch = function(callback) {
