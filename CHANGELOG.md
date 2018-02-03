@@ -1,3 +1,9 @@
+## 0.7.6
+
+Bugfix:
+
+  - Fix initial state.
+  
 ## 0.7.5
 
 Bugfix:
