@@ -28,8 +28,8 @@ Example config.json:
                 "request_timeout_lockstate": 5000, // (in ms, optional, default: 5000)
                 "request_timeout_lockaction": 30000, // (in ms, optional, default: 30000)
                 "cache_directory": "./.node-persist/storage", // (optional, default: "./.node-persist/storage")
-                "webhook_server_ip_or_name": "xxx.xxx.xxx.xxx", // (optional)
-                "webhook_port": 51827, // (optional, default: 51827)
+                "webhook_server_ip_or_name": "xxx.xxx.xxx.xxx", // (optional, must be the IP/Hostname of the server running homebridge)
+                "webhook_port": 51827, // (optional, default: 51827, must be a free port on the server running homebridge, NOT the same as homebridge)
                 "lock_state_mode": 0, // (see below, optional, default: 0)
                 "add_maintainance_buttons": false, // (optional, default: false, if set to true, than three switches will be added as accessory to do reboot, firmware update, and to refresh all locks state)
                 "locks": [
