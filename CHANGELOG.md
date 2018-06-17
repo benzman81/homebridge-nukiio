@@ -1,3 +1,9 @@
+## 0.7.7
+
+Bugfix:
+
+  - Listen to Ipv4.
+
 ## 0.7.6
 
 Bugfix:
