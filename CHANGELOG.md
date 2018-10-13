@@ -1,3 +1,9 @@
+## 0.7.8
+
+New features:
+
+  - Updated dependency to request.
+
 ## 0.7.7
 
 Bugfix:
