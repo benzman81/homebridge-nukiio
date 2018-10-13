@@ -51,9 +51,7 @@ You can choose one of the following values to determine how to retrieve the stat
 |-|-|
 |0 (default)| Lock states are requested from the bridge via /lockState. This means, that the bridge always connects to each lock via Bluetooth to retrieve an always up-to-date lock state. This mode takes a lot of time for retrieving the lock state when using more than one lock, as this can not be processed in parallel|
 |1| Only use internal cached values by the plugin. These values get their state by using the webhooks of the bridge, so you need to active them. This mode is the fastest as no request are send to the bridge but of course has the drawback that the cache might not always be correct.|
-|2| Lock states are requested from the bridge via /list using a last known lock state cached by Nuki bridge. This means, that the bridge does not connect to any lock via Bluetooth to retrieve lock state. This mode is faster than mode "0" but still makes requests to the bridge. If multiple locks request the lockstate in parallel than only one request is sent to bridge for all locks. The drawback is, that the last known state might not always be correct. (not supported until Nuki releases firmware update)|
-
-*Note: Currently I use mode "1" for my two locks. Although the state might not be correct in a few cases, I prefer this as the state are shown very fast in HomeKit. Once the firmware is out, I will switch to mode "2" to see if that speed is acceptable for me.
+|2| Lock states are requested from the bridge via /list using a last known lock state cached by Nuki bridge. This means, that the bridge does not connect to any lock via Bluetooth to retrieve lock state. This mode is faster than mode "0" but still makes requests to the bridge. If multiple locks request the lockstate in parallel than only one request is sent to bridge for all locks. The drawback is, that the last known state might not always be correct.|
 
 ## Use Nuki Webhook
 Usually the plugin makes calls to Nuki bridge to get the state of a lock. Since Nuki supports Webhooks it is possible for Nuki to push a lock state on the fly to the plugin.
