@@ -129,6 +129,8 @@ function NukiLockAccessory(log, config, nukiBridge) {
         this.lockServiceUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(lastHomeKitStateLockedTargetCached, undefined, null);
         this.lockServiceUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateLockedCached, undefined, null);
     }
+
+    if(this.polling) { this.getStatePolling(); };
 };
 
 NukiLockAccessory.prototype.getState = function(callback) {
