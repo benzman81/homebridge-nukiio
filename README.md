@@ -4,7 +4,7 @@
 
 ***
 # homebridge-nukiio
-Nuki.io support for Homebridge: https://github.com/nfarina/homebridge 
+Nuki.io support for Homebridge: https://github.com/nfarina/homebridge
 
 # Current state
 Seems to work solid. Feel free to create new issues in github for any problems.
@@ -37,7 +37,9 @@ Example config.json:
                         "id": "your-lock-nukiid",
                         "name": "Front Door",
                         "usesDoorLatch" : true, // (default: false)
-                        "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
+                        "priority" : 1, // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
+                        "polling": true, // (optional, default: false)
+                        "pollingIntervall": 60  (optional, default: 60 [seconds for polling, if polling true])
                     }
                 ]
             }
@@ -62,7 +64,7 @@ If the configuration parameter "webhook_server_ip_or_name" is set, than the plug
 ## Doors with door latches
 You can define if a door uses a door latch by setting 'usesDoorLatch' to true. If you do so, than three locks will be added to homekit. One that unlocks the door pulling the door latch ("lockname Unlatch"), one that unlocks the door without
 pulling the door latch ("lockname"), and one that always is display as locked and pulls the door latch on unlock ("lockname ALWAYS Unlatch").
-    
+
 # Additional information
 The plugin uses the Nuki API of the bridge. The API token can be configured via the Nuki app when enabling the API.
 The plugin was build on Nuki API documentation v1.0.3. Valid values for lock action and unlock action can be found in the Nuki API documentation.

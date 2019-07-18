@@ -53,6 +53,8 @@ function NukiLockAccessory(log, config, nukiBridge) {
     this.id = config["id"];
     this.name = config["name"];
     this.usesDoorLatch = config["usesDoorLatch"] || false;
+    this.polling = config["polling"] || false;
+    this.pollingIntervall = config["pollingIntervall"] || 60;
     this.nukiBridge = nukiBridge;
 
     this.informationService = new Service.AccessoryInformation();
@@ -138,6 +140,25 @@ NukiLockAccessory.prototype.getState = function(callback) {
 
 NukiLockAccessory.prototype.getStateAlwaysUnlatch = function(callback) {
     callback(null, Characteristic.LockCurrentState.SECURED);
+};
+
+NukiLockAccessory.prototype.getStatePolling = function() {
+    this.log("Polling state for '%s'...", this.id);
+    clearTimeout(this.polling);
+
+    var that = this
+    this.nukiLock.isLocked(function(err, isLocked) {
+        var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+        var newHomeKitStateLockedTarget = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+        that.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, null);
+        that.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, null);
+        if(that.usesDoorLatch) {
+            that.lockServiceUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, null);
+            that.lockServiceUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, null);
+        }
+
+    that.polling = setTimeout(that.getStatePolling.bind(that), that.pollingIntervall * 1000);
+    });
 };
 
 NukiLockAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, callback, context) {

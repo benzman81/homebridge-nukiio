@@ -1,3 +1,14 @@
+## 0.7.9
+
+New features:
+
+  - State polling every X seconds (optional)
+
+Bugfix:
+
+  - No notification when homebridge start/restart
+
+
 ## 0.7.8
 
 New features:
@@ -15,7 +26,7 @@ Bugfix:
 Bugfix:
 
   - Fix initial state.
-  
+
 ## 0.7.5
 
 Bugfix:
@@ -322,13 +333,13 @@ Bugfix:
 New features:
 
   - If a getState request is running for one lock and getState is requested again for this lock, no additional request will be made, it will use the cache set by the running request when this one ends.
-  
+
 ## 0.1.2
 
 Bugfix:
 
   - Set state to home kit even if a timeout was reached setting state as we can assume that everything went well and nuki is just too slow.
-  
+
 ## 0.1.1
 
 Bugfix:
