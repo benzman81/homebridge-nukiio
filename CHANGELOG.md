@@ -2,7 +2,7 @@
 
 Bugfix:
 
-  - No homekit notifications if homebridge restarts.
+  - No homekit notifications if homebridge restarts (thanks to nicoh88).
 
 ## 0.7.8
 
