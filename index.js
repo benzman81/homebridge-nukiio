@@ -99,7 +99,7 @@ function NukiLockUnlatchAccessory(log, config, nukiBridge) {
   this.nukiBridge = nukiBridge;
 
   this.informationServiceUnlatch = new Service.AccessoryInformation();
-  this.informationServiceUnlatch.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id);
+  this.informationServiceUnlatch.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id + " Unlatch");
 
   this.lockServiceUnlatch = new Service.LockMechanism(this.name, this.name);
   this.lockServiceUnlatch.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getState.bind(this));
