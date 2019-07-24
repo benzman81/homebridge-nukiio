@@ -1,3 +1,9 @@
+## 0.7.10
+
+Bugfix / new features:
+
+  - If "usesDoorLatch" used, locks can now be assigend in different rooms (thanks to nicoh88).
+
 ## 0.7.9
 
 Bugfix:
