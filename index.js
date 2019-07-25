@@ -15,27 +15,39 @@ var CONTEXT_FROM_NUKI_BACKGROUND = "fromNukiBackground";
 function NukiBridgePlatform(log, config) {
   this.log = log;
   this.nukiBridge = new nuki.NukiBridge(this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
-  this.locks = config["locks"] || [];
+  this.locksConfig = config["locks"] || [];
+  this.locksList = [];
   this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
+
+  this.webHookCallback = (function(isLocked, batteryCritical) {
+    for(var l = 0; l < this.locksList.length; l++) {
+      this.locksList[l].onStateChanged(isLocked, batteryCritical);
+    }
+  }).bind(this);
+
 }
 
 NukiBridgePlatform.prototype = {
-
   accessories : function(callback) {
     var accessories = [];
     var locks = [];
-    for (var i = 0; i < this.locks.length; i++) {
-      var lock = new NukiLockAccessory(this.log, this.locks[i], this.nukiBridge);
+
+    for (var i = 0; i < this.locksConfig.length; i++) {
+
+      var nukiLock = new nuki.NukiLock(this.log, this.nukiBridge, this.locksConfig[i]['id'], this.locksConfig[i]["priority"], this.webHookCallback);
+
+      var lock = new NukiLockAccessory(this.log, this.locksConfig[i], this.nukiBridge, nukiLock);
       accessories.push(lock);
       locks.push(lock);
+      this.locksList.push(lock);
 
-      if (this.locks[i].usesDoorLatch) {
-        var lockUnlatch = new NukiLockUnlatchAccessory(this.log, this.locks[i], this.nukiBridge);
+      if (this.locksConfig[i].usesDoorLatch) {
+        var lockUnlatch = new NukiLockUnlatchAccessory(this.log, this.locksConfig[i], this.nukiBridge, nukiLock);
         accessories.push(lockUnlatch);
-        locks.push(lockUnlatch);
-        var lockAlwaysUnlatch = new NukiLockAlwaysUnlatchAccessory(this.log, this.locks[i], this.nukiBridge);
+        this.locksList.push(lockUnlatch);
+        var lockAlwaysUnlatch = new NukiLockAlwaysUnlatchAccessory(this.log, this.locksConfig[i], this.nukiBridge, nukiLock);
         accessories.push(lockAlwaysUnlatch);
-        locks.push(lockAlwaysUnlatch);
+        this.locksList.push(lockAlwaysUnlatch);
       }
     }
     if (this.addMaintainanceButtons) {
@@ -47,12 +59,13 @@ NukiBridgePlatform.prototype = {
   }
 }
 
-function NukiLockAccessory(log, config, nukiBridge) {
+function NukiLockAccessory(log, config, nukiBridge, nukiLock) {
   this.log = log;
   this.id = config["id"];
   this.name = config["name"];
   this.usesDoorLatch = config["usesDoorLatch"] || false;
   this.nukiBridge = nukiBridge;
+  this.nukiLock = nukiLock;
 
   this.informationService = new Service.AccessoryInformation();
   this.informationService.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id);
@@ -66,22 +79,6 @@ function NukiLockAccessory(log, config, nukiBridge) {
   this.battservice.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
 
-  var webHookCallback = (function(isLocked, batteryCritical) {
-    var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-    var newHomeKitStateLockedTarget = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-    var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-    this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-    this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-    if (this.usesDoorLatch) {
-      this.lockServiceUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-      this.lockServiceUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-    }
-    this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-    this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
-  }).bind(this);
-
-  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], webHookCallback);
-
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
   var isLockedCached = this.nukiLock.getIsLockedCached();
@@ -91,12 +88,13 @@ function NukiLockAccessory(log, config, nukiBridge) {
   this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateLockedCached, undefined, null);
 };
 
-function NukiLockUnlatchAccessory(log, config, nukiBridge) {
+function NukiLockUnlatchAccessory(log, config, nukiBridge, nukiLock) {
   this.log = log;
   this.id = config["id"];
   this.name = config["name"] + " Unlatch";
   this.usesDoorLatch = config["usesDoorLatch"] || false;
   this.nukiBridge = nukiBridge;
+  this.nukiLock = nukiLock;
 
   this.informationServiceUnlatch = new Service.AccessoryInformation();
   this.informationServiceUnlatch.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id + " Unlatch");
@@ -110,8 +108,6 @@ function NukiLockUnlatchAccessory(log, config, nukiBridge) {
   this.battserviceUnlatch.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battserviceUnlatch.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
 
-  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], null);
-
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
   var isLockedCached = this.nukiLock.getIsLockedCached();
@@ -121,15 +117,16 @@ function NukiLockUnlatchAccessory(log, config, nukiBridge) {
   this.lockServiceUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateLockedCached, undefined, null);
 };
 
-function NukiLockAlwaysUnlatchAccessory(log, config, nukiBridge) {
+function NukiLockAlwaysUnlatchAccessory(log, config, nukiBridge, nukiLock) {
   this.log = log;
   this.id = config["id"];
   this.name = config["name"] + " Always Unlatch";
   this.usesDoorLatch = config["usesDoorLatch"] || false;
   this.nukiBridge = nukiBridge;
+  this.nukiLock = nukiLock;
 
   this.informationServiceAlwaysUnlatch = new Service.AccessoryInformation();
-  this.informationServiceAlwaysUnlatch.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id + " ALWAYS Unlatch");
+  this.informationServiceAlwaysUnlatch.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id + " Always Unlatch");
 
   this.lockServiceAlwaysUnlatch = new Service.LockMechanism(this.name, this.name);
   this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateAlwaysUnlatch.bind(this));
@@ -140,13 +137,8 @@ function NukiLockAlwaysUnlatchAccessory(log, config, nukiBridge) {
   this.battserviceAlwaysUnlatch.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battserviceAlwaysUnlatch.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
 
-  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], null);
-
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
-  var isLockedCached = this.nukiLock.getIsLockedCached();
-  var lastHomeKitStateLockedCached = isLockedCached ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-  var lastHomeKitStateLockedTargetCached = isLockedCached ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
   this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
   this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
 };
@@ -158,6 +150,10 @@ NukiLockAccessory.prototype.getState = function(callback) {
   this.nukiLock.isLocked(callbackIsLocked);
 };
 NukiLockUnlatchAccessory.prototype.getState = NukiLockAccessory.prototype.getState
+
+NukiLockAlwaysUnlatchAccessory.prototype.getStateAlwaysUnlatch = function(callback) {
+  callback(null, Characteristic.LockCurrentState.SECURED);
+};
 
 NukiLockAccessory.prototype.setState = function(unlockType, homeKitState, callback, context) {
   var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
@@ -238,9 +234,7 @@ NukiLockAccessory.prototype.setState = function(unlockType, homeKitState, callba
 };
 NukiLockUnlatchAccessory.prototype.setState = NukiLockAccessory.prototype.setState
 
-NukiLockAlwaysUnlatchAccessory.prototype.getStateAlwaysUnlatch = function(callback) {
-  callback(null, Characteristic.LockCurrentState.SECURED);
-};
+
 
 NukiLockAlwaysUnlatchAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, callback, context) {
   var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
@@ -311,6 +305,34 @@ NukiLockAccessory.prototype.getLowBatt = function(callback) {
 };
 NukiLockUnlatchAccessory.prototype.getLowBatt = NukiLockAccessory.prototype.getLowBatt
 NukiLockAlwaysUnlatchAccessory.prototype.getLowBatt = NukiLockAccessory.prototype.getLowBatt
+
+NukiLockAccessory.prototype.onStateChanged = function(isLocked, batteryCritical) {
+    var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+    var newHomeKitStateLockedTarget = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+    var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.log("HomeKit state change %s by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", this.name, isLocked, batteryCritical);
+};
+
+NukiLockUnlatchAccessory.prototype.onStateChanged = function(isLocked, batteryCritical) {
+    var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+    var newHomeKitStateLockedTarget = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+    var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    this.lockServiceUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.lockServiceUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.battserviceUnlatch.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.log("HomeKit state change %s by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", this.name, isLocked, batteryCritical);
+};
+
+NukiLockAlwaysUnlatchAccessory.prototype.onStateChanged = function(isLocked, batteryCritical) {
+    var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
+    this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
+    this.battserviceAlwaysUnlatch.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.log("HomeKit state change %s by webhook complete. New batteryCritical = '%s'.", this.name, batteryCritical);
+};
 
 NukiLockAccessory.prototype.getServices = function() {
   return [ this.lockServiceUnlock, this.informationService, this.battservice ];
