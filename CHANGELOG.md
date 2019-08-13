@@ -1,3 +1,13 @@
+## 0.7.11
+
+New features:
+
+  - "always unlatch" is now a outlet / switch - not a lock (for siri)
+
+Bugfix:
+
+  - Fix for > "lock_state_mode": 1 < too many api connections at startup
+
 ## 0.7.10
 
 Bugfix / new features:
