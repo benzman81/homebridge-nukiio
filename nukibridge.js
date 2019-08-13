@@ -520,7 +520,9 @@ function NukiLock(log, nukiBridge, id, priority, webHookCallback) {
     this.log("Initial is locked request finished.");
   }).bind(this);
   if (this.nukiBridge.lockStateMode === LOCK_STATE_MODE_ONLY_CACHE) {
-    this.isLocked(callbackIsLocked, true);
+    setTimeout((function() {
+      this.isLocked(callbackIsLocked, true);
+    }).bind(this), 5000);
   }
 };
 
