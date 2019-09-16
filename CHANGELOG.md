@@ -1,3 +1,9 @@
+## 0.8.0
+
+New features:
+
+  - Basic integration of Nuki Opener.
+
 ## 0.7.9
 
 Bugfix:

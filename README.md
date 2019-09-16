@@ -4,7 +4,7 @@
 
 ***
 # homebridge-nukiio
-Nuki.io support for Homebridge: https://github.com/nfarina/homebridge 
+Nuki.io support for Homebridge: https://github.com/nfarina/homebridge that supports Nuki Lock and Nuki Opener.
 
 # Current state
 Seems to work solid. Feel free to create new issues in github for any problems.
@@ -38,6 +38,13 @@ Example config.json:
                         "name": "Front Door",
                         "usesDoorLatch" : true, // (default: false)
                         "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
+                    }
+                ],
+                "openers": [
+                    {
+                        "id": "your-opener-nukiid",
+                        "name": "Main Opener",
+                        "priority" : 1 // (optional, default: 99 [openers with higher priority {lower number} will be proccessed first])
                     }
                 ]
             }
