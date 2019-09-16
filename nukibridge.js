@@ -284,7 +284,8 @@ NukiBridge.prototype._lockState = function _lockState(nukiLock, callbacks /*
     }).bind(this);
     this._sendRequest("/lockState", {
       token : this.apiToken,
-      nukiId : nukiLock.id
+      nukiId : nukiLock.id,
+      deviceType : nukiLock.deviceType
     }, this.requestTimeoutLockState, singleCallBack);
   }
   else {
@@ -348,6 +349,7 @@ NukiBridge.prototype._lockAction = function _lockAction(nukiLock, lockAction, ca
     this._sendRequest("/lockAction", {
       token : this.apiToken,
       nukiId : nukiLock.id,
+      deviceType : nukiLock.deviceType,
       action : lockAction
     }, this.requestTimeoutLockAction, callback);
   }
@@ -501,7 +503,7 @@ NukiBridge.prototype._processNextQueueEntry = function _processNextQueueEntry() 
   }
 };
 
-function NukiLock(log, nukiBridge, id, priority, webHookCallback) {
+function NukiLock(log, nukiBridge, id, priority, deviceType, webHookCallback) {
   this.nukiBridge = nukiBridge;
   this.log = log;
   this.id = id;
@@ -511,6 +513,7 @@ function NukiLock(log, nukiBridge, id, priority, webHookCallback) {
   this.lockNGoAction = NUKI_LOCK_ACTION_LOCK_N_GO;
   this.lockNGoActionUnlatch = NUKI_LOCK_ACTION_LOCK_N_GO_UNLATCH;
   this.priority = priority;
+  this.deviceType = deviceType;
   this.webHookCallback = webHookCallback;
 
   if (this.priority == null || this.priority == "") {

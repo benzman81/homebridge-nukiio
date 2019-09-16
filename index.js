@@ -53,6 +53,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
   this.name = config["name"];
   this.usesDoorLatch = config["usesDoorLatch"] || false;
   this.nukiBridge = nukiBridge;
+  this.deviceType = 0;
 
   this.informationService = new Service.AccessoryInformation();
   this.informationService.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id);
@@ -90,7 +91,7 @@ function NukiLockAccessory(log, config, nukiBridge) {
     this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
   }).bind(this);
 
-  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], webHookCallback);
+  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
 
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
@@ -268,6 +269,7 @@ function NukiOpenerAccessory(log, config, nukiBridge) {
   this.id = config["id"];
   this.name = config["name"];
   this.nukiBridge = nukiBridge;
+  this.deviceType = 2;
 
   this.informationService = new Service.AccessoryInformation();
   this.informationService.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Opener").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id);
@@ -306,7 +308,7 @@ function NukiOpenerAccessory(log, config, nukiBridge) {
     this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
   }).bind(this);
 
-  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], webHookCallback);
+  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
 
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
