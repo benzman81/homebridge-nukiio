@@ -31,7 +31,7 @@ NukiBridgePlatform.prototype = {
       accessories.push(lock);
       nukiDevices.push(lock);
     }
-    for (var j = 0; j < this.locks.length; j++) {
+    for (var j = 0; j < this.openers.length; j++) {
       var opener = new NukiOpenerAccessory(this.log, this.openers[j], this.nukiBridge);
       accessories.push(opener);
       nukiDevices.push(opener);
