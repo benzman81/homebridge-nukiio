@@ -69,7 +69,12 @@ If the configuration parameter "webhook_server_ip_or_name" is set, than the plug
 ## Doors with door latches
 You can define if a door uses a door latch by setting 'usesDoorLatch' to true. If you do so, than three locks will be added to homekit. One that unlocks the door pulling the door latch ("lockname Unlatch"), one that unlocks the door without
 pulling the door latch ("lockname"), and one that always is display as locked and pulls the door latch on unlock ("lockname ALWAYS Unlatch").
-    
+
+## Nuki Opener
+If you configure a Nuki opener you will get three lock accessories. One to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.
+If the lock accessory for RingToOpen is secured then RingToOpen is inactive, other wise it is active.
+If the lock accessory for ContinousMode is secured then ContinousMode is inactive, other wise it is active.
+
 # Additional information
 The plugin uses the Nuki API of the bridge. The API token can be configured via the Nuki app when enabling the API.
 The plugin was build on Nuki API documentation v1.0.3. Valid values for lock action and unlock action can be found in the Nuki API documentation.
