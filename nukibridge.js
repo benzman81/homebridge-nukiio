@@ -392,15 +392,15 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
           callback(nukiUnsuccessfulError);
         }
       }
-      else if (statusCode == 503) {
-        var nukiRetryableError = new Error("Request to Nuki bridge was not succesful. (statusCode=503, nukiUnsuccessfulError=false, retryableError=true)");
-        nukiRetryableError.nukiUnsuccessfulError = false;
-        nukiRetryableError.retryableError = true;
-        callback(nukiRetryableError);
-      }
       else {
         callback(null, json);
       }
+    }
+    else if (statusCode == 503) {
+      var nukiRetryableError = new Error("Request to Nuki bridge was not succesful. (statusCode=503, nukiUnsuccessfulError=false, retryableError=true)");
+      nukiRetryableError.nukiUnsuccessfulError = false;
+      nukiRetryableError.retryableError = true;
+      callback(nukiRetryableError);
     }
     else {
       callback(err || new Error("Request to Nuki bridge was not succesful."));
