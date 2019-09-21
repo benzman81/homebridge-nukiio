@@ -12,8 +12,8 @@ module.exports = function(homebridge) {
 };
 
 var CONTEXT_FROM_NUKI_BACKGROUND = "fromNukiBackground";
-var MAX_TRIES_FOR_LOCK_ACTIONS = 3;
-var DELAY_FOR_RETRY = 3000;
+var DEFAULT_MAX_TRIES_FOR_LOCK_ACTIONS = 3;
+var DEFAULT_DELAY_FOR_RETRY = 3000;
 
 function NukiBridgePlatform(log, config) {
   this.log = log;
@@ -21,6 +21,14 @@ function NukiBridgePlatform(log, config) {
   this.locks = config["locks"] || [];
   this.openers = config["openers"] || [];
   this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
+  this.lockactionMaxtries = config["lockaction_maxtries"];
+  this.lockactionRetryDelay = config["lockaction_retrydelay"];
+  if (this.lockactionMaxtries == null || this.lockactionMaxtries == "" || this.lockactionMaxtries < 0) {
+    this.lockactionMaxtries = DEFAULT_MAX_TRIES_FOR_LOCK_ACTIONS;
+  }
+  if (this.lockactionRetryDelay == null || this.lockactionRetryDelay == "" || this.lockactionRetryDelay < 500) {
+    this.lockactionRetryDelay = DEFAULT_DELAY_FOR_RETRY;
+  }
 }
 
 NukiBridgePlatform.prototype = {
@@ -29,12 +37,12 @@ NukiBridgePlatform.prototype = {
     var accessories = [];
     var nukiDevices = [];
     for (var i = 0; i < this.locks.length; i++) {
-      var lock = new NukiLockAccessory(this.log, this.locks[i], this.nukiBridge);
+      var lock = new NukiLockAccessory(this.log, this.locks[i], this.nukiBridge, this);
       accessories.push(lock);
       nukiDevices.push(lock);
     }
     for (var j = 0; j < this.openers.length; j++) {
-      var opener = new NukiOpenerAccessory(this.log, this.openers[j], this.nukiBridge);
+      var opener = new NukiOpenerAccessory(this.log, this.openers[j], this.nukiBridge, this);
       accessories.push(opener);
       nukiDevices.push(opener);
     }
@@ -49,12 +57,13 @@ NukiBridgePlatform.prototype = {
 
 // nuki lock
 
-function NukiLockAccessory(log, config, nukiBridge) {
+function NukiLockAccessory(log, config, nukiBridge, nukiBridgePlatform) {
   this.log = log;
   this.id = config["id"];
   this.name = config["name"];
   this.usesDoorLatch = config["usesDoorLatch"] || false;
   this.nukiBridge = nukiBridge;
+  this.nukiBridgePlatform = nukiBridgePlatform;
   this.deviceType = 0;
 
   this.informationService = new Service.AccessoryInformation();
@@ -132,13 +141,13 @@ NukiLockAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, callb
   }
   else {
     var lockStateChangeCallback = (function(params, err, json) {
-      if (err && err.retryableError && params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
+      if (err && err.retryableError && params.lockTry < this.nukiBridgePlatform.lockactionMaxtries) {
         this.log("An error occured processing lock action. Will retry now...");
         var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
         setTimeout((function() {
           this.nukiLock.unlatch(lockStateChangeCallback);
-        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
+        }).bind(this), this.nukiBridgePlatform.lockactionRetryDelay * currentLockTry);
       }
       else {
         if (err) {
@@ -173,7 +182,7 @@ NukiLockAccessory.prototype.setState = function(unlockType, homeKitState, callba
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
   var lockStateChangeCallback = (function(params, err, json) {
     if (err && err.retryableError) {
-      if (params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
+      if (params.lockTry < this.nukiBridgePlatform.lockactionMaxtries) {
         this.log("An error occured processing lock action. Will retry now...");
         var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
@@ -187,7 +196,7 @@ NukiLockAccessory.prototype.setState = function(unlockType, homeKitState, callba
           else {
             this.nukiLock.unlock(lockStateChangeCallback);
           }
-        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
+        }).bind(this), this.nukiBridgePlatform.lockactionRetryDelay * currentLockTry);
       }
       else {
         this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
@@ -271,11 +280,12 @@ NukiLockAccessory.prototype.getServices = function() {
 };
 
 // nuki opener
-function NukiOpenerAccessory(log, config, nukiBridge) {
+function NukiOpenerAccessory(log, config, nukiBridge, nukiBridgePlatform) {
   this.log = log;
   this.id = config["id"];
   this.name = config["name"];
   this.nukiBridge = nukiBridge;
+  this.nukiBridgePlatform = nukiBridgePlatform;
   this.deviceType = 2;
 
   this.informationService = new Service.AccessoryInformation();
@@ -368,13 +378,13 @@ NukiOpenerAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, cal
   }
   else {
     var lockStateChangeCallback = (function(params, err, json) {
-      if (err && err.retryableError && params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
+      if (err && err.retryableError && params.lockTry < this.nukiBridgePlatform.lockactionMaxtries) {
         this.log("An error occured processing open action. Will retry now...");
         var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
         setTimeout((function() {
           this.nukiLock.unlatch(lockStateChangeCallback);
-        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
+        }).bind(this), this.nukiBridgePlatform.lockactionRetryDelay * currentLockTry);
       }
       else {
         if (err) {
@@ -409,7 +419,7 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
   var lockStateChangeCallback = (function(params, err, json) {
     if (err && err.retryableError) {
-      if (params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
+      if (params.lockTry < this.nukiBridgePlatform.lockactionMaxtries) {
         this.log("An error occured processing lock action. Will retry now...");
         var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
@@ -430,7 +440,7 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
               this.nukiLock.unlock(lockStateChangeCallback);
             }
           }
-        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
+        }).bind(this), this.nukiBridgePlatform.lockactionRetryDelay * currentLockTry);
       }
       else {
         if (unlockType === "lockngo") {

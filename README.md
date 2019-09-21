@@ -31,6 +31,8 @@ Example config.json:
                 "webhook_server_ip_or_name": "xxx.xxx.xxx.xxx", // (optional, must be the IP/Hostname of the server running homebridge)
                 "webhook_port": 51827, // (optional, default: 51827, must be a free port on the server running homebridge, NOT the same as homebridge)
                 "lock_state_mode": 0, // (see below, optional, default: 0)
+                "lockaction_maxtries": 3, // (optional, default: 3)
+                "lockaction_retrydelay": 3000, // (in ms, optional, default: 3000)
                 "add_maintainance_buttons": false, // (optional, default: false, if set to true, than three switches will be added as accessory to do reboot, firmware update, and to refresh all locks state)
                 "locks": [
                     {
@@ -74,6 +76,9 @@ pulling the door latch ("lockname"), and one that always is display as locked an
 If you configure a Nuki opener you will get three lock accessories. One to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.
 If the lock accessory for RingToOpen is secured then RingToOpen is inactive, other wise it is active.
 If the lock accessory for ContinousMode is secured then ContinousMode is inactive, other wise it is active.
+
+# Errors
+For errors on lock actions a configured number of retries with delay will be done. You can set the parameters 'lockaction_maxtries' and 'lockaction_retrydelay' to meet your needs.
 
 # Additional information
 The plugin uses the Nuki API of the bridge. The API token can be configured via the Nuki app when enabling the API.
