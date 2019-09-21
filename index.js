@@ -130,7 +130,7 @@ NukiLockAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, callb
   }
   else {
     var lockStateChangeCallback = (function(params, err, json) {
-      if (err && err.nukiUnsuccessfulError && params.lockTry < 2) {
+      if (err && err.retryableError && params.lockTry < 2) {
         this.log("An error occured processing lock action. Will retry now...");
         params.lockTry = params.lockTry + 1;
         this.nukiLock.unlatch(lockStateChangeCallback);
@@ -167,7 +167,7 @@ NukiLockAccessory.prototype.setState = function(unlockType, homeKitState, callba
   var newHomeKitState = doLock ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
   var lockStateChangeCallback = (function(params, err, json) {
-    if (err && err.nukiUnsuccessfulError) {
+    if (err && err.retryableError) {
       if (params.lockTry < 2) {
         this.log("An error occured processing lock action. Will retry now...");
         params.lockTry = params.lockTry + 1;
@@ -360,7 +360,7 @@ NukiOpenerAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, cal
   }
   else {
     var lockStateChangeCallback = (function(params, err, json) {
-      if (err && err.nukiUnsuccessfulError && params.lockTry < 2) { // TODO
+      if (err && err.retryableError && params.lockTry < 2) {
         this.log("An error occured processing open action. Will retry now...");
         params.lockTry = params.lockTry + 1;
         this.nukiLock.unlatch(lockStateChangeCallback);
@@ -397,7 +397,7 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
   var newHomeKitState = doLock ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
   var lockStateChangeCallback = (function(params, err, json) {
-    if (err && err.nukiUnsuccessfulError) {
+    if (err && err.retryableError) {
       if (params.lockTry < 2) {
         this.log("An error occured processing lock action. Will retry now...");
         params.lockTry = params.lockTry + 1;

@@ -3,6 +3,7 @@
 New features:
 
   - Added suppert of Nuki Opener. See README for details.
+  - Retry of LockActions is now also done fpr 503 errors.
 
 ## 0.7.9
 

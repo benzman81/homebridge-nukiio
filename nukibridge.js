@@ -386,10 +386,17 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
           callback(null, json);
         }
         else {
-          var nukiUnsuccessfulError = new Error("Request to Nuki bridge was not succesful.");
+          var nukiUnsuccessfulError = new Error("Request to Nuki bridge was not succesful. (statusCode=200, nukiUnsuccessfulError=true, retryableError=true)");
           nukiUnsuccessfulError.nukiUnsuccessfulError = true;
+          nukiUnsuccessfulError.retryableError = true;
           callback(nukiUnsuccessfulError);
         }
+      }
+      else if (statusCode == 503) {
+        var nukiRetryableError = new Error("Request to Nuki bridge was not succesful. (statusCode=503, nukiUnsuccessfulError=false, retryableError=true)");
+        nukiRetryableError.nukiUnsuccessfulError = false;
+        nukiRetryableError.retryableError = true;
+        callback(nukiRetryableError);
       }
       else {
         callback(null, json);
@@ -579,7 +586,7 @@ NukiLock.prototype._isLocked = function _isLocked(state) {
 
 NukiLock.prototype.lock = function lock(callback) {
   var callbackWrapper = (function(err, json) {
-    if (!err || !err.nukiUnsuccessfulError) {
+    if (!err || !err.retryableError) {
       this._setLockCache(true);
     }
     callback(err, json);
@@ -589,7 +596,7 @@ NukiLock.prototype.lock = function lock(callback) {
 
 NukiLock.prototype.unlock = function unlock(callback) {
   var callbackWrapper = (function(err, json) {
-    if (!err || !err.nukiUnsuccessfulError) {
+    if (!err || !err.retryableError) {
       this._setLockCache(false);
     }
     callback(err, json);
@@ -599,7 +606,7 @@ NukiLock.prototype.unlock = function unlock(callback) {
 
 NukiLock.prototype.unlatch = function unlatch(callback) {
   var callbackWrapper = (function(err, json) {
-    if ((!err || !err.nukiUnsuccessfulError) && this.deviceType === 0) {
+    if ((!err || !err.retryableError) && this.deviceType === 0) {
       this._setLockCache(false);
     }
     callback(err, json);
@@ -609,7 +616,7 @@ NukiLock.prototype.unlatch = function unlatch(callback) {
 
 NukiLock.prototype.lockNGo = function lock(callback) {
   var callbackWrapper = (function(err, json) {
-    if (!err || !err.nukiUnsuccessfulError) {
+    if (!err || !err.retryableError) {
       this._setLockCache(undefined, undefined, 2);
     }
     callback(err, json);
@@ -619,7 +626,7 @@ NukiLock.prototype.lockNGo = function lock(callback) {
 
 NukiLock.prototype.lockNGoUnlatch = function unlock(callback) {
   var callbackWrapper = (function(err, json) {
-    if (!err || !err.nukiUnsuccessfulError) {
+    if (!err || !err.retryableError) {
       this._setLockCache(undefined, undefined, 3);
     }
     callback(err, json);
