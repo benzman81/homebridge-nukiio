@@ -599,7 +599,7 @@ NukiLock.prototype.unlock = function unlock(callback) {
 
 NukiLock.prototype.unlatch = function unlatch(callback) {
   var callbackWrapper = (function(err, json) {
-    if (!err || !err.nukiUnsuccessfulError) {
+    if ((!err || !err.nukiUnsuccessfulError) && this.deviceType === 0) {
       this._setLockCache(false);
     }
     callback(err, json);
