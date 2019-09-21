@@ -13,7 +13,7 @@ module.exports = function(homebridge) {
 
 var CONTEXT_FROM_NUKI_BACKGROUND = "fromNukiBackground";
 var MAX_TRIES_FOR_LOCK_ACTIONS = 3;
-var DELAY_FOR_RETRY = 1500;
+var DELAY_FOR_RETRY = 3000;
 
 function NukiBridgePlatform(log, config) {
   this.log = log;
