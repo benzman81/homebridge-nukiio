@@ -12,6 +12,8 @@ module.exports = function(homebridge) {
 };
 
 var CONTEXT_FROM_NUKI_BACKGROUND = "fromNukiBackground";
+var MAX_TRIES_FOR_LOCK_ACTIONS = 3;
+var DELAY_FOR_RETRY = 1500;
 
 function NukiBridgePlatform(log, config) {
   this.log = log;
@@ -130,10 +132,13 @@ NukiLockAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, callb
   }
   else {
     var lockStateChangeCallback = (function(params, err, json) {
-      if (err && err.retryableError && params.lockTry < 2) {
+      if (err && err.retryableError && params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
         this.log("An error occured processing lock action. Will retry now...");
+        var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
-        this.nukiLock.unlatch(lockStateChangeCallback);
+        setTimeout((function() {
+          this.nukiLock.unlatch(lockStateChangeCallback);
+        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
       }
       else {
         if (err) {
@@ -168,18 +173,21 @@ NukiLockAccessory.prototype.setState = function(unlockType, homeKitState, callba
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
   var lockStateChangeCallback = (function(params, err, json) {
     if (err && err.retryableError) {
-      if (params.lockTry < 2) {
+      if (params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
         this.log("An error occured processing lock action. Will retry now...");
+        var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
-        if (doLock) {
-          this.nukiLock.lock(lockStateChangeCallback);
-        }
-        else if (unlockType === "unlatch") {
-          this.nukiLock.unlatch(lockStateChangeCallback);
-        }
-        else {
-          this.nukiLock.unlock(lockStateChangeCallback);
-        }
+        setTimeout((function() {
+          if (doLock) {
+            this.nukiLock.lock(lockStateChangeCallback);
+          }
+          else if (unlockType === "unlatch") {
+            this.nukiLock.unlatch(lockStateChangeCallback);
+          }
+          else {
+            this.nukiLock.unlock(lockStateChangeCallback);
+          }
+        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
       }
       else {
         this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
@@ -360,10 +368,13 @@ NukiOpenerAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, cal
   }
   else {
     var lockStateChangeCallback = (function(params, err, json) {
-      if (err && err.retryableError && params.lockTry < 2) {
+      if (err && err.retryableError && params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
         this.log("An error occured processing open action. Will retry now...");
+        var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
-        this.nukiLock.unlatch(lockStateChangeCallback);
+        setTimeout((function() {
+          this.nukiLock.unlatch(lockStateChangeCallback);
+        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
       }
       else {
         if (err) {
@@ -398,25 +409,28 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
   var lockStateChangeCallback = (function(params, err, json) {
     if (err && err.retryableError) {
-      if (params.lockTry < 2) {
+      if (params.lockTry < MAX_TRIES_FOR_LOCK_ACTIONS) {
         this.log("An error occured processing lock action. Will retry now...");
+        var currentLockTry = params.lockTry;
         params.lockTry = params.lockTry + 1;
-        if (unlockType === "lockngo") {
-          if (doLock) {
-            this.nukiLock.lockNGoUnlatch(lockStateChangeCallback);
+        setTimeout((function() {
+          if (unlockType === "lockngo") {
+            if (doLock) {
+              this.nukiLock.lockNGoUnlatch(lockStateChangeCallback);
+            }
+            else {
+              this.nukiLock.lockNGo(lockStateChangeCallback);
+            }
           }
           else {
-            this.nukiLock.lockNGo(lockStateChangeCallback);
+            if (doLock) {
+              this.nukiLock.lock(lockStateChangeCallback);
+            }
+            else {
+              this.nukiLock.unlock(lockStateChangeCallback);
+            }
           }
-        }
-        else {
-          if (doLock) {
-            this.nukiLock.lock(lockStateChangeCallback);
-          }
-          else {
-            this.nukiLock.unlock(lockStateChangeCallback);
-          }
-        }
+        }).bind(this), DELAY_FOR_RETRY * currentLockTry);
       }
       else {
         if (unlockType === "lockngo") {
