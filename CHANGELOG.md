@@ -2,7 +2,7 @@
 
 New features:
 
-  - Basic integration of Nuki Opener.
+  - Added suppert of Nuki Opener. See README for details.
 
 ## 0.7.9
 
