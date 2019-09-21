@@ -311,8 +311,8 @@ function NukiOpenerAccessory(log, config, nukiBridge, nukiBridgePlatform) {
   var webHookCallback = (function(isRingToOpenLocked, batteryCritical, mode) {
     var newHomeKitStateRingToOpenLocked = isRingToOpenLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
     var newHomeKitStateRingToOpenLockedTarget = isRingToOpenLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
-    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateRingToOpenLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateRingToOpenLockedTarget, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
 
     var isContinuousMode = mode === 3;
     var newHomeKitStateContinuousMode = isContinuousMode ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
