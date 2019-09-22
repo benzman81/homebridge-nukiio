@@ -35,21 +35,22 @@ NukiBridgePlatform.prototype = {
 
   accessories : function(callback) {
     var accessories = [];
-    var nukiDevices = [];
+    var nukiLocks = [];
     for (var i = 0; i < this.locks.length; i++) {
       var lock = new NukiLockAccessory(this.log, this.locks[i], this.nukiBridge, this);
       accessories.push(lock);
-      nukiDevices.push(lock);
+      nukiLocks.push(lock);
     }
+    var nukiOpeners = [];
     for (var j = 0; j < this.openers.length; j++) {
       var opener = new NukiOpenerAccessory(this.log, this.openers[j], this.nukiBridge, this);
       accessories.push(opener);
-      nukiDevices.push(opener);
+      nukiOpeners.push(opener);
     }
     if (this.addMaintainanceButtons) {
-      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge, nukiDevices));
-      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-fwupdate", "Nuki Bridge Firmware Update", this.nukiBridge, nukiDevices));
-      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-refreshall", "Nuki Bridge Refresh All", this.nukiBridge, nukiDevices));
+      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge, nukiLocks, nukiOpeners));
+      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-fwupdate", "Nuki Bridge Firmware Update", this.nukiBridge, nukiLocks, nukiOpeners));
+      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-refreshall", "Nuki Bridge Refresh All", this.nukiBridge, nukiLocks, nukiOpeners));
     }
     callback(accessories);
   }
@@ -352,6 +353,11 @@ function NukiOpenerAccessory(log, config, nukiBridge, nukiBridgePlatform) {
 
 NukiOpenerAccessory.prototype.getStateRingToOpen = function(callback) {
   var callbackIsLocked = (function(err, isLocked) {
+    var modeCached = this.nukiLock.getModeCached();
+    var isContinuousModeCached = modeCached === 3;
+    if (isContinuousModeCached) {
+      isLocked = false;
+    }
     callback(err, isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED);
   }).bind(this);
   this.nukiLock.isLocked(callbackIsLocked);
@@ -532,12 +538,13 @@ NukiOpenerAccessory.prototype.getServices = function() {
 
 // nuki maintainance
 
-function NukiBridgeMaintainanceSwitchAccessory(log, id, name, nukiBridge, nukiLockAccessories) {
+function NukiBridgeMaintainanceSwitchAccessory(log, id, name, nukiBridge, nukiLockAccessories, nukiOpenerAccessories) {
   this.log = log;
   this.id = id;
   this.name = name;
   this.nukiBridge = nukiBridge;
   this.nukiLockAccessories = nukiLockAccessories;
+  this.nukiOpenerAccessories = nukiOpenerAccessories;
 
   this.switchService = new Service.Switch(this.name);
   this.switchService.getCharacteristic(Characteristic.On).on('get', this.getState.bind(this)).on('set', this.setState.bind(this));
@@ -587,7 +594,31 @@ NukiBridgeMaintainanceSwitchAccessory.prototype.setState = function(powerOn, cal
           var nukiLockAccessory = this.nukiLockAccessories[i];
           var isLockedCached = nukiLockAccessory.nukiLock.getIsLockedCached();
           var newHomeKitStateLocked = isLockedCached ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+          var newHomeKitStateLockedTarget = isLockedCached ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
           nukiLockAccessory.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+          nukiLockAccessory.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+        }
+        for (var i = 0; i < this.nukiOpenerAccessories.length; i++) {
+          var nukiOpenerAccessory = this.nukiOpenerAccessories[i];
+
+          var modeCached = nukiOpenerAccessory.nukiLock.getModeCached();
+          var isContinuousModeCached = modeCached === 3;
+          var lastHomeKitStateContinuousModeCached = isContinuousModeCached ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
+          var lastHomeKitStateContinuousModeTargetCached = isContinuousModeCached ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED;
+          nukiOpenerAccessory.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateContinuousModeCached, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+          nukiOpenerAccessory.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(lastHomeKitStateContinuousModeTargetCached, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+
+          var isRingToOpenLockedCached = nukiOpenerAccessory.nukiLock.getIsLockedCached();
+          if (isContinuousModeCached) {
+            isRingToOpenLockedCached = false;
+          }
+          var lastHomeKitStateRingToOpenCached = isRingToOpenLockedCached ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+          var lastHomeKitStateRingToOpenTargetCached = isRingToOpenLockedCached ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+          nukiOpenerAccessory.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateRingToOpenCached, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+          nukiOpenerAccessory.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(lastHomeKitStateRingToOpenTargetCached, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+
+          nukiOpenerAccessory.lockServiceOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
+          nukiOpenerAccessory.lockServiceOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, CONTEXT_FROM_NUKI_BACKGROUND);
         }
       }).bind(this);
       this.nukiBridge.refreshAllLocks(callbackWrapper);
