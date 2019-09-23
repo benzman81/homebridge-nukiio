@@ -20,6 +20,7 @@ global.NUKI_LOCK_STATE_UNDEFINED = 255;
 
 var DEFAULT_REQUEST_TIMEOUT_LOCK_STATE = 15000;
 var DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION = 45000;
+var DEFAULT_REQUEST_TIMEOUT_OTHER = 15000;
 var DEFAULT_WEBHOOK_SERVER_PORT = 51827;
 var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 var DEFAULT_PRIORITY = 99;
@@ -29,7 +30,7 @@ var LOCK_STATE_MODE_REQUEST_LOCKSTATE = 0;
 var LOCK_STATE_MODE_ONLY_CACHE = 1;
 var LOCK_STATE_MODE_REQUEST_LASTKNOWNLOCKSTATE = 2;
 
-function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
+function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
   this.log = log;
   this.bridgeUrl = bridgeUrl;
   if (this.bridgeUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
@@ -42,6 +43,7 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
   this.apiToken = apiToken;
   this.requestTimeoutLockState = requestTimeoutLockState;
   this.requestTimeoutLockAction = requestTimeoutLockAction;
+  this.requestTimeoutOther = requestTimeoutOther;
   this.cacheDirectory = cacheDirectory;
   this.lockStateMode = lockStateMode;
   this.webHookServerIpOrName = webHookServerIpOrName;
@@ -51,6 +53,9 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
   }
   if (this.requestTimeoutLockAction == null || this.requestTimeoutLockAction == "" || this.requestTimeoutLockAction < 1) {
     this.requestTimeoutLockAction = DEFAULT_REQUEST_TIMEOUT_LOCK_ACTION;
+  }
+  if (this.requestTimeoutOther == null || this.requestTimeoutOther == "" || this.requestTimeoutOther < 1) {
+    this.requestTimeoutOther = DEFAULT_REQUEST_TIMEOUT_OTHER;
   }
   if (this.cacheDirectory == null || this.cacheDirectory == "") {
     this.cacheDirectory = DEFAULT_CACHE_DIRECTORY;
@@ -174,7 +179,7 @@ NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest)
   if (!this.runningRequest && doRequest) {
     this._sendRequest("/callback/list", {
       token : this.apiToken
-    }, this.requestTimeoutLockState, callback);
+    }, this.requestTimeoutOther, callback);
   }
   else {
     this._addToQueue({
@@ -196,7 +201,7 @@ NukiBridge.prototype._addCallback = function _addCallback(doRequest) {
     this._sendRequest("/callback/add", {
       token : this.apiToken,
       url : this.webHookUrl
-    }, this.requestTimeoutLockState, callback);
+    }, this.requestTimeoutOther, callback);
   }
   else {
     this._addToQueue({
@@ -214,7 +219,7 @@ NukiBridge.prototype.reboot = function reboot(callback, doRequest) {
     }).bind(this);
     this._sendRequest("/reboot", {
       token : this.apiToken
-    }, this.requestTimeoutLockState, callbackWrapper);
+    }, this.requestTimeoutOther, callbackWrapper);
   }
   else {
     this._addToQueue({
@@ -232,7 +237,7 @@ NukiBridge.prototype.updateFirmware = function updateFirmware(callback, doReques
     }).bind(this);
     this._sendRequest("/fwupdate", {
       token : this.apiToken
-    }, this.requestTimeoutLockState, callbackWrapper);
+    }, this.requestTimeoutOther, callbackWrapper);
   }
   else {
     this._addToQueue({
@@ -330,7 +335,7 @@ NukiBridge.prototype._lastKnownlockState = function _lastKnownlockState(nukiLock
     }).bind(this);
     this._sendRequest("/list", {
       token : this.apiToken
-    }, this.requestTimeoutLockState, singleCallBack);
+    }, this.requestTimeoutOther, singleCallBack);
   }
   else {
     this._addToQueue({

@@ -5,6 +5,7 @@ New features:
   - Added suppert of Nuki Opener. See README for details.
   - Retry of LockActions is now also done fpr 503 errors.
   - Make retry behavior configurable.
+  - Added parameter 'request_timeout_other' to set timeout for all other communication with bridge (get/list/add callbacks, maintainance calls, etc.)
 
 ## 0.7.9
 
