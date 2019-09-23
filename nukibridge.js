@@ -622,7 +622,7 @@ NukiLock.prototype.unlatch = function unlatch(callback) {
 NukiLock.prototype.lockNGo = function lock(callback) {
   var callbackWrapper = (function(err, json) {
     if (!err || !err.retryableError) {
-      this._setLockCache(undefined, undefined, 2);
+      this._setLockCache(undefined, undefined, 3);
     }
     callback(err, json);
   }).bind(this);
@@ -632,7 +632,7 @@ NukiLock.prototype.lockNGo = function lock(callback) {
 NukiLock.prototype.lockNGoUnlatch = function unlock(callback) {
   var callbackWrapper = (function(err, json) {
     if (!err || !err.retryableError) {
-      this._setLockCache(undefined, undefined, 3);
+      this._setLockCache(undefined, undefined, 2);
     }
     callback(err, json);
   }).bind(this);

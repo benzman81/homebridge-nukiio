@@ -426,6 +426,21 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
   var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
   var newHomeKitState = doLock ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+
+  if (unlockType !== "lockngo" && doLock) {
+    var modeCached = this.nukiLock.getModeCached();
+    var isContinuousModeCached = modeCached === 3;
+    if (isContinuousModeCached) {
+      callback(null);
+      setTimeout((function() {
+        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.UNSECURED, undefined, null);
+        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.UNSECURED, undefined, null);
+        this.log("HomeKit change for  ring to open back to unlock state complete as continous mode is still active.");
+      }).bind(this), 1000);
+      return;
+    }
+  }
+
   var lockStateChangeCallback = (function(params, err, json) {
     if (err && err.retryableError) {
       if (params.lockTry < this.nukiBridgePlatform.lockactionMaxtries) {
@@ -452,7 +467,7 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
         }).bind(this), this.nukiBridgePlatform.lockactionRetryDelay * currentLockTry);
       }
       else {
-        if (unlockType === "lockngo" || doLock) {
+        if (unlockType === "lockngo") {
           this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
           this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
         }
@@ -463,7 +478,7 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
       }
     }
     else {
-      if (unlockType === "lockngo" || doLock) {
+      if (unlockType === "lockngo") {
         this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
         this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
       }
@@ -480,7 +495,7 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
   });
 
   if (context === CONTEXT_FROM_NUKI_BACKGROUND) {
-    if (unlockType === "lockngo" || doLock) {
+    if (unlockType === "lockngo") {
       this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
       this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
     }
