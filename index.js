@@ -467,23 +467,35 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
         }).bind(this), this.nukiBridgePlatform.lockactionRetryDelay * currentLockTry);
       }
       else {
+        var updateRingToOpen = true;
         if (unlockType === "lockngo") {
           this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
           this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+          if (doLock && !this.nukiLock.getIsLockedCached()) {
+            updateRingToOpen = false;
+          }
         }
-        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
-        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+        if (updateRingToOpen) {
+          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
+          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+        }
         callback(err);
         this.log("An error occured processing lock action after retrying multiple times. Reason: %s", err);
       }
     }
     else {
+      var updateRingToOpen = true;
       if (unlockType === "lockngo") {
         this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
         this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+        if (doLock && !this.nukiLock.getIsLockedCached()) {
+          updateRingToOpen = false;
+        }
       }
-      this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
-      this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+      if (updateRingToOpen) {
+        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
+        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+      }
       callback(null);
       if (err) {
         this.log("An error occured processing lock action. Reason: %s", err);
@@ -495,12 +507,18 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
   });
 
   if (context === CONTEXT_FROM_NUKI_BACKGROUND) {
+    var updateRingToOpen = true;
     if (unlockType === "lockngo") {
       this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
       this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+      if (doLock && !this.nukiLock.getIsLockedCached()) {
+        updateRingToOpen = false;
+      }
     }
-    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
-    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+    if (updateRingToOpen) {
+      this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
+      this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+    }
     if (callback) {
       callback(null);
     }
