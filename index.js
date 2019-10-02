@@ -1,4 +1,5 @@
-var nuki = require('./nukibridge');
+var NukiBridge = require('./src/nuki/NukiBridge');
+var NukiLock = require('./src/nuki/NukiLock');
 var Service, Characteristic;
 
 module.exports = function(homebridge) {
@@ -17,7 +18,7 @@ var DEFAULT_DELAY_FOR_RETRY = 3000;
 
 function NukiBridgePlatform(log, config) {
   this.log = log;
-  this.nukiBridge = new nuki.NukiBridge(this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
+  this.nukiBridge = new NukiBridge(this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
   this.locks = config["locks"] || [];
   this.openers = config["openers"] || [];
   this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
@@ -103,7 +104,7 @@ function NukiLockAccessory(log, config, nukiBridge, nukiBridgePlatform) {
     this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
   }).bind(this);
 
-  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
+  this.nukiLock = new NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
 
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
@@ -329,7 +330,7 @@ function NukiOpenerAccessory(log, config, nukiBridge, nukiBridgePlatform) {
     this.log("HomeKit state change by webhook complete. New isRingToOpenLocked = '%s' and batteryCritical = '%s' and mode = '%s'.", isRingToOpenLocked, batteryCritical, mode);
   }).bind(this);
 
-  this.nukiLock = new nuki.NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
+  this.nukiLock = new NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
 
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
@@ -426,7 +427,8 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
   var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
   var newHomeKitState = doLock ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-  //this.log("S E T S T A T E: unlockType = %s, doLock = %s,homeKitState = %s", unlockType, doLock, homeKitState);
+  // this.log("S E T S T A T E: unlockType = %s, doLock = %s,homeKitState = %s",
+  // unlockType, doLock, homeKitState);
   if (unlockType !== "lockngo") {
     var modeCached = this.nukiLock.getModeCached();
     var isContinuousModeCached = modeCached === 3;
