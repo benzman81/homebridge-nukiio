@@ -26,6 +26,8 @@ var DEFAULT_CACHE_DIRECTORY = "./.node-persist/storage";
 var DEFAULT_PRIORITY = 99;
 var REBOOT_WAIT_TIME = 45000;
 
+var DUMMY_BRIDGE_FOR_OPENER = true;
+
 var LOCK_STATE_MODE_REQUEST_LOCKSTATE = 0;
 var LOCK_STATE_MODE_ONLY_CACHE = 1;
 var LOCK_STATE_MODE_REQUEST_LASTKNOWNLOCKSTATE = 2;
@@ -371,15 +373,19 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
                                                                                                              * (err,
                                                                                                              * json)
                                                                                                              */) {
-  this.log("Send request to Nuki bridge '%s' on '%s' with '%s'.", this.bridgeUrl, entryPoint, JSON.stringify(queryObject));
+  var toBridgeUrl = this.bridgeUrl;
+  if (queryObject.deviceType === 2 && DUMMY_BRIDGE_FOR_OPENER === true) {
+    toBridgeUrl = "http://10.0.1.108:8881";
+  }
+  this.log("Send request to Nuki bridge '%s' on '%s' with '%s'.", toBridgeUrl, entryPoint, JSON.stringify(queryObject));
   this.runningRequest = true;
   request.get({
-    url : this.bridgeUrl + entryPoint,
+    url : toBridgeUrl + entryPoint,
     qs : queryObject,
     timeout : requestTimeout
   }, (function(err, response, body) {
     var statusCode = response && response.statusCode ? response.statusCode : -1;
-    this.log("Request to Nuki bridge '%s' finished with status code '%s' and body '%s'.", this.bridgeUrl, statusCode, body, err);
+    this.log("Request to Nuki bridge '%s' finished with status code '%s' and body '%s'.", toBridgeUrl, statusCode, body, err);
     if (!err && statusCode == 200) {
       var json = {};
       if (body !== "") {
