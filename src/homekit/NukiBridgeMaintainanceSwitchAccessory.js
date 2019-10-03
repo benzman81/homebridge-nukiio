@@ -2,9 +2,9 @@ const Constants = require('../Constants');
 
 var Service, Characteristic;
 
-function NukiBridgeMaintainanceSwitchAccessory(log, id, name, nukiBridge, nukiLockAccessories, nukiOpenerAccessories) {
-  Service = homebridge.hap.Service;
-  Characteristic = homebridge.hap.Characteristic;
+function NukiBridgeMaintainanceSwitchAccessory(ServiceParam, CharacteristicParam, log, id, name, nukiBridge, nukiLockAccessories, nukiOpenerAccessories) {
+  Service = ServiceParam;
+  Characteristic = CharacteristicParam;
 
   this.log = log;
   this.id = id;

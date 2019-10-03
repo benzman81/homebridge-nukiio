@@ -50,9 +50,9 @@ NukiBridgePlatform.prototype = {
       nukiOpeners.push(opener);
     }
     if (this.addMaintainanceButtons) {
-      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge, nukiLocks, nukiOpeners));
-      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-fwupdate", "Nuki Bridge Firmware Update", this.nukiBridge, nukiLocks, nukiOpeners));
-      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(this.log, "maintainance-switch-refreshall", "Nuki Bridge Refresh All", this.nukiBridge, nukiLocks, nukiOpeners));
+      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(Service, Characteristic, this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge, nukiLocks, nukiOpeners));
+      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(Service, Characteristic, this.log, "maintainance-switch-fwupdate", "Nuki Bridge Firmware Update", this.nukiBridge, nukiLocks, nukiOpeners));
+      accessories.push(new NukiBridgeMaintainanceSwitchAccessory(Service, Characteristic, this.log, "maintainance-switch-refreshall", "Nuki Bridge Refresh All", this.nukiBridge, nukiLocks, nukiOpeners));
     }
     callback(accessories);
   }
