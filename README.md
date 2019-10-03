@@ -1,6 +1,8 @@
 **NOTE: Since version 0.10.0 Only two locks are exposed. One that just does lock/unlock (without pulling the latch), and one that always is 
 displayed as locked and pulls the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
-could be done using scenes.**
+could be done using scenes. Since one lock was removed you need to adapt your existing scenes that used this lock. You will now also get a switch in
+the lock to enable/disbale unlatching, so you can use automations to switch to desired state (i.e. based on location or time). This was implemented
+to prevent accidental unlatch of door.**
 
 **NOTE: Since version 0.7.0 the configuration keys for lock and unlock actions are no longer supported, for now. Use 'usesDoorLatch' for doors with door latch.**
 
@@ -76,6 +78,8 @@ If the configuration parameter "webhook_server_ip_or_name" is set, than the plug
 ## Doors with door latches
 You can define if a door uses a door latch by setting 'usesDoorLatch' to true. If you do so, than two locks will be added to homekit. One that unlocks the door without
 pulling the door latch ("lockname") and one that always is displayed as locked and pulls the door latch on unlock ("lockname ALWAYS Unlatch").
+You will now also get a switch in the lock to enable/disbale unlatching so you can use automations to switch to desired state (i.e. based on location or time).
+This was implemented to prevent accidental unlatch of door.
 
 ## Nuki Opener
 If you configure a Nuki opener you will get three lock accessories. One to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.

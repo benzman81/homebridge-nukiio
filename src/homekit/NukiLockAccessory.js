@@ -27,6 +27,9 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
     this.lockServiceAlwaysUnlatch = new Service.LockMechanism(this.name + " ALWAYS Unlatch", this.name + " ALWAYS Unlatch");
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateAlwaysUnlatch.bind(this));
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateAlwaysUnlatch.bind(this)).on('set', this.setStateAlwaysUnlatch.bind(this));
+
+    this.switchUnlatchAllowedService = new Service.Switch(this.name + " Unlatch Allowed");
+    this.switchUnlatchAllowedService.getCharacteristic(Characteristic.On).on('get', this.getStateSwitchUnlatchAllowed.bind(this)).on('set', this.setStateSwitchUnlatchAllowed.bind(this));
   }
 
   this.battservice = new Service.BatteryService(this.name);
@@ -56,6 +59,9 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
   if (this.usesDoorLatch) {
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
+
+    var isUnlatchAllowed = this._isUnlatchAllowed();
+    this.switchUnlatchAllowedService.getCharacteristic(Characteristic.On).updateValue(isUnlatchAllowed, undefined, null);
   }
 };
 
@@ -72,7 +78,11 @@ NukiLockAccessory.prototype.getStateAlwaysUnlatch = function(callback) {
 
 NukiLockAccessory.prototype.setStateAlwaysUnlatch = function(homeKitState, callback, context) {
   var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
-  if (doLock) {
+  var isUnlatchAllowed = this._isUnlatchAllowed();
+  if (doLock || !isUnlatchAllowed) {
+    if (!doLock && !isUnlatchAllowed) {
+      this.log("Unlatching is set to not be allowed so nothing is executed and state will be switched back.");
+    }
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
     if (callback) {
@@ -194,9 +204,33 @@ NukiLockAccessory.prototype.getLowBatt = function(callback) {
   this.nukiLock.getLowBatt(getLowBattCallback);
 };
 
+NukiLockAccessory.prototype.getStateSwitchUnlatchAllowed = function(callback) {
+  this.log("Getting current state for 'SwitchUnlatchAllowed'...");
+  var state = this._isUnlatchAllowed();
+  callback(null, state);
+};
+
+NukiLockAccessory.prototype.setStateSwitchUnlatchAllowed = function(powerOn, callback) {
+  this.log("Switch state for 'SwitchUnlatchAllowed' to '%s'...", powerOn);
+  this.nukiBridge.storage.setItemSync(this._getSwitchUnlatchAllowedStorageKey(), powerOn);
+  callback(null);
+};
+
+NukiLockAccessory.prototype._isUnlatchAllowed = function() {
+  var state = this.nukiBridge.storage.getItemSync(this._getSwitchUnlatchAllowedStorageKey());
+  if (state === undefined) {
+    state = true;
+  }
+  return state;
+};
+
+NukiLockAccessory.prototype._getSwitchUnlatchAllowedStorageKey = function() {
+  return 'bridge-' + this.nukiBridge.bridgeUrl + '-lock-' + this.nukiLock.instanceId + '-' + this.nukiLock.id + '-switch-unlatch-allowed-cache';
+};
+
 NukiLockAccessory.prototype.getServices = function() {
   if (this.usesDoorLatch) {
-    return [ this.lockServiceUnlock, this.lockServiceAlwaysUnlatch, this.informationService, this.battservice ];
+    return [ this.lockServiceUnlock, this.lockServiceAlwaysUnlatch, this.switchUnlatchAllowedService, this.informationService, this.battservice ];
   }
   return [ this.lockServiceUnlock, this.informationService, this.battservice ];
 };

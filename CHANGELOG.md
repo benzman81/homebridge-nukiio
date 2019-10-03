@@ -1,11 +1,16 @@
 ## 0.10.0
 
+New features:
+
+  - Added a switch to locks with usesDoorLatch = true to de-/activate pulling the latch. Implemented to prevent accidental unlatch of door.
+    You can use automations to switch to desired state (i.e. based on location or time).
+
 Feature changes and removal:
 
   - Door latch handling changed. If you define usesDoorLatch = true you will no longer get three locks, but only two. 
     One that just does lock/unlock (without pulling the latch), and one that always is displayed as locked and pulls
     the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
-    could be done using scenes.
+    could be done using scenes. Since one lock was removed you need to adapt your existing scenes that used this lock.
 
 ## 0.9.0
 
