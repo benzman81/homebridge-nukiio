@@ -10,7 +10,7 @@ Feature changes and removal:
   - Door latch handling changed. If you define usesDoorLatch = true you will no longer get three locks, but only two. 
     One that just does lock/unlock (without pulling the latch), and one that always is displayed as locked and pulls
     the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
-    could be done using scenes. Since one lock was removed you need to adapt your existing scenes that used this lock.
+    could be done using scenes. Since one lock was removed you need to adapt your existing scenes/automations that used this lock.
 
 ## 0.9.0
 

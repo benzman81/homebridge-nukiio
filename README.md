@@ -1,6 +1,6 @@
 **NOTE: Since version 0.10.0 Only two locks are exposed. One that just does lock/unlock (without pulling the latch), and one that always is 
 displayed as locked and pulls the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
-could be done using scenes. Since one lock was removed you need to adapt your existing scenes that used this lock. You will now also get a switch in
+could be done using scenes. Since one lock was removed you need to adapt your existing scenes/automations that used this lock. You will now also get a switch in
 the lock to enable/disbale unlatching, so you can use automations to switch to desired state (i.e. based on location or time). This was implemented
 to prevent accidental unlatch of door.**
 
