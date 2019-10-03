@@ -1,3 +1,7 @@
+**NOTE: Since version 0.10.0 Only two locks are exposed. One that just does lock/unlock (without pulling the latch), and one that always is 
+displayed as locked and pulls the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
+could be done using scenes.**
+
 **NOTE: Since version 0.7.0 the configuration keys for lock and unlock actions are no longer supported, for now. Use 'usesDoorLatch' for doors with door latch.**
 
 **NOTE: Since version 0.4.0 the configuration changed to platform. You must fix your configuration to match the new configuration format.**
@@ -14,7 +18,7 @@ You need the following information from your bridge for the configuration:
 - You must activate the developer mode on you bridge
 - The URL to your bridge, IP and port can be configured when setting up the bridge in the Nuki App, example http://10.0.0.1:8080
 - The API token, can be configured when setting up the bridge in the Nuki App
-- The nuki id of your locks, can be found when calling http://your-nuki-bridge-url/list?token=your-nuki-api-token in a browser
+- The nuki id of your locks/opener, can be found when calling http://your-nuki-bridge-url/list?token=your-nuki-api-token in a browser
 
 # Configuration
 Example config.json:
@@ -70,8 +74,8 @@ If the configuration parameter "webhook_server_ip_or_name" is set, than the plug
 *Note: An automatically added Webhook does not get removed ever, so you need to do it manually if you don't need it anymore.*
 
 ## Doors with door latches
-You can define if a door uses a door latch by setting 'usesDoorLatch' to true. If you do so, than three locks will be added to homekit. One that unlocks the door pulling the door latch ("lockname Unlatch"), one that unlocks the door without
-pulling the door latch ("lockname"), and one that always is display as locked and pulls the door latch on unlock ("lockname ALWAYS Unlatch").
+You can define if a door uses a door latch by setting 'usesDoorLatch' to true. If you do so, than two locks will be added to homekit. One that unlocks the door without
+pulling the door latch ("lockname") and one that always is displayed as locked and pulls the door latch on unlock ("lockname ALWAYS Unlatch").
 
 ## Nuki Opener
 If you configure a Nuki opener you will get three lock accessories. One to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.
@@ -83,4 +87,4 @@ For errors on lock actions a configured number of retries with delay will be don
 
 # Additional information
 The plugin uses the Nuki API of the bridge. The API token can be configured via the Nuki app when enabling the API.
-The plugin was build on Nuki API documentation v1.0.3. Valid values for lock action and unlock action can be found in the Nuki API documentation.
+The plugin was build on Nuki API documentation v1.9.0. Valid values for lock action and unlock action can be found in the Nuki API documentation.
