@@ -60,6 +60,9 @@ Example config.json:
         ]
     }
 
+## Cache directory storage (cache_directory)
+The cache directory is used to cache the state of the locks. It must point to a **valid** and **empty** directory and the user that runs homebridge must have **write access**.
+
 ## Configure lock state mode
 You can choose one of the following values to determine how to retrieve the state of the locks:
 
