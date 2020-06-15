@@ -35,7 +35,7 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
   this.battservice.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
 
-  var webHookCallback = (function(isRingToOpenLocked, batteryCritical, mode) {
+  var webHookCallback = (function(isRingToOpenLocked, batteryCritical, contactClosed, mode) {
     var isContinuousMode = mode === 3;
     var newHomeKitStateContinuousMode = isContinuousMode ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
     var newHomeKitStateContinuousModeTarget = isContinuousMode ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED;

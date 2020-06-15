@@ -1,3 +1,9 @@
+## 0.11.0
+
+New features:
+
+  - Added door contact sensor support for Nuki 2.0 (needs bridge firmware version 2.6.0 or 1.16.0).
+
 ## 0.10.0
 
 New features:
@@ -7,7 +13,7 @@ New features:
 
 Feature changes and removal:
 
-  - Door latch handling changed. If you define usesDoorLatch = true you will no longer get three locks, but only two. 
+  - Door latch handling changed. If you define usesDoorLatch = true you will no longer get three locks, but only two.
     One that just does lock/unlock (without pulling the latch), and one that always is displayed as locked and pulls
     the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
     could be done using scenes. Since one lock was removed you need to adapt your existing scenes/automations that used this lock.

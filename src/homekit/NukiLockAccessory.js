@@ -11,7 +11,8 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
   this.log = log;
   this.id = config["id"];
   this.name = config["name"];
-  this.usesDoorLatch = config["usesDoorLatch"] || false;
+  this.usesDoorLatch = config["usesDoorLatch"] === true || false;
+  this.usesDoorContactSensor = config["usesDoorContactSensor"] ===true || false;
   this.nukiBridge = nukiBridge;
   this.nukiBridgePlatform = nukiBridgePlatform;
   this.deviceType = 0;
@@ -31,20 +32,27 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
     this.switchUnlatchAllowedService = new Service.Switch(this.name + " Unlatch Allowed");
     this.switchUnlatchAllowedService.getCharacteristic(Characteristic.On).on('get', this.getStateSwitchUnlatchAllowed.bind(this)).on('set', this.setStateSwitchUnlatchAllowed.bind(this));
   }
+  if (this.usesDoorContactSensor) {
+    this.doorContactSensor = new Service.ContactSensor(this.name + " Contact Sensor");
+    this.doorContactSensor.getCharacteristic(Characteristic.ContactSensorState).on('get', this.getStateContactSensor.bind(this));
+  }
 
   this.battservice = new Service.BatteryService(this.name);
   this.battservice.getCharacteristic(Characteristic.BatteryLevel).on('get', this.getBattery.bind(this));
   this.battservice.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
 
-  var webHookCallback = (function(isLocked, batteryCritical) {
+  var webHookCallback = (function(isLocked, batteryCritical, contactClosed, mode) {
     var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
     var newHomeKitStateLockedTarget = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
     var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
     this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-    this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s'.", isLocked, batteryCritical);
+    if (this.usesDoorContactSensor) {
+      this.doorContactSensor.getCharacteristic(Characteristic.ContactSensorState).updateValue(contactClosed ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    }
+    this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s' and contactClosed = '%s'.", isLocked, batteryCritical, contactClosed);
   }).bind(this);
 
   this.nukiLock = new NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
@@ -70,6 +78,13 @@ NukiLockAccessory.prototype.getState = function(callback) {
     callback(err, isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED);
   }).bind(this);
   this.nukiLock.isLocked(callbackIsLocked);
+};
+
+NukiLockAccessory.prototype.getStateContactSensor = function(callback) {
+  var callbackIsContactClosed = (function(err, isContactClosed) {
+    callback(err, isContactClosed ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+  }).bind(this);
+  this.nukiLock.isContactClosed(callbackIsContactClosed);
 };
 
 NukiLockAccessory.prototype.getStateAlwaysUnlatch = function(callback) {

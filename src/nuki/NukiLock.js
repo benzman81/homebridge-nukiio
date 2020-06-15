@@ -38,15 +38,17 @@ NukiLock.prototype.isLocked = function isLocked(callback /* (err, isLocked) */, 
       else {
         var state = Constants.NUKI_LOCK_STATE_UNDEFINED;
         var batteryCritical = false;
+        var contactClosed = true;
         var mode = 2;
         if (json) {
           state = json.state;
           batteryCritical = json.batteryCritical;
+          contactClosed = json.doorsensorState !== 3;
           mode = json.mode;
         }
         var isLocked = this._isLocked(state);
-        this.log("Lock state is isLocked = '%s' (Nuki state '%s' ) with battery critical = '%s' and mode = '%s'", isLocked, state, batteryCritical, mode);
-        this._setLockCache(isLocked, batteryCritical, mode);
+        this.log("Lock state is isLocked = '%s' (Nuki state '%s' ) with battery critical = '%s', contactClosed = '%s' and mode = '%s'", isLocked, state, batteryCritical, contactClosed, mode);
+        this._setLockCache(isLocked, batteryCritical, contactClosed, mode);
         callback(null, isLocked);
       }
     }).bind(this);
@@ -63,6 +65,13 @@ NukiLock.prototype.isLocked = function isLocked(callback /* (err, isLocked) */, 
     this.log("Cached lock state is isLocked = '%s'.", cachedIsLocked);
     callback(null, cachedIsLocked);
   }
+};
+
+NukiLock.prototype.isContactClosed = function isContactClosed(callback /* (err, isContactClosed) */) {
+  var callbackIsLocked = (function(err, islocked) {
+    callback(err, this._getIsContactClosed());
+  }).bind(this);
+  this.isLocked(callbackIsLocked);
 };
 
 NukiLock.prototype.getLowBatt = function getLowBatt(callback /* (err, lowBattt) */) {
@@ -132,6 +141,14 @@ NukiLock.prototype.getIsLockedCached = function getIsLockedCached() {
   return lockCache.isLocked;
 };
 
+NukiLock.prototype._getIsContactClosed = function _getIsContactClosed() {
+  var lockCache = this.nukiBridge.storage.getItemSync(this._getLockStorageKey());
+  if (lockCache === undefined) {
+    return true;
+  }
+  return lockCache.contactClosed;
+};
+
 NukiLock.prototype._getIsBatteryLowCached = function _getIsBatteryLowCached() {
   var lockCache = this.nukiBridge.storage.getItemSync(this._getLockStorageKey());
   if (lockCache === undefined) {
@@ -148,10 +165,11 @@ NukiLock.prototype.getModeCached = function getModeCached() {
   return lockCache.mode;
 };
 
-NukiLock.prototype._setLockCache = function _setLockCache(isLocked, batteryCritical, mode) {
+NukiLock.prototype._setLockCache = function _setLockCache(isLocked, batteryCritical, contactClosed, mode) {
   var newCache = {
     isLocked : this.getIsLockedCached(),
     batteryCritical : this._getIsBatteryLowCached(),
+    contactClosed : this._getIsContactClosed(),
     mode : this.getModeCached()
   }
   if (isLocked !== undefined && isLocked !== null) {
@@ -159,6 +177,9 @@ NukiLock.prototype._setLockCache = function _setLockCache(isLocked, batteryCriti
   }
   if (batteryCritical !== undefined && batteryCritical !== null) {
     newCache.batteryCritical = batteryCritical;
+  }
+  if (contactClosed !== undefined && contactClosed !== null) {
+    newCache.contactClosed = contactClosed;
   }
   if (mode !== undefined && mode !== null) {
     newCache.mode = mode;

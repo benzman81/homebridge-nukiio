@@ -1,4 +1,4 @@
-**NOTE: Since version 0.10.0 Only two locks are exposed. One that just does lock/unlock (without pulling the latch), and one that always is 
+**NOTE: Since version 0.10.0 Only two locks are exposed. One that just does lock/unlock (without pulling the latch), and one that always is
 displayed as locked and pulls the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
 could be done using scenes. Since one lock was removed you need to adapt your existing scenes/automations that used this lock. You will now also get a switch in
 the lock to enable/disbale unlatching, so you can use automations to switch to desired state (i.e. based on location or time). This was implemented
@@ -46,6 +46,7 @@ Example config.json:
                         "id": "your-lock-nukiid",
                         "name": "Front Door",
                         "usesDoorLatch" : true, // (default: false)
+                        "usesDoorContactSensor" : true, // (default: false)
                         "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
                     }
                 ],
