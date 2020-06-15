@@ -12,35 +12,43 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
   this.id = config["id"];
   this.name = config["name"];
   this.usesDoorLatch = config["usesDoorLatch"] === true || false;
-  this.usesDoorContactSensor = config["usesDoorContactSensor"] ===true || false;
+  this.usesDoorContactSensor = config["usesDoorContactSensor"] === true || false;
   this.nukiBridge = nukiBridge;
   this.nukiBridgePlatform = nukiBridgePlatform;
   this.deviceType = 0;
 
+  this.services = [];
+
   this.informationService = new Service.AccessoryInformation();
   this.informationService.setCharacteristic(Characteristic.Manufacturer, "Nuki.io").setCharacteristic(Characteristic.Model, "Nuki.io Lock").setCharacteristic(Characteristic.SerialNumber, "Nuki.io-Id " + this.id);
+  this.services.push(this.informationService);
 
   this.lockServiceUnlock = new Service.LockMechanism(this.name, this.name);
   this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getState.bind(this));
   this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).on('get', this.getState.bind(this)).on('set', this.setState.bind(this));
+  this.services.push(this.lockServiceUnlock);
 
   if (this.usesDoorLatch) {
     this.lockServiceAlwaysUnlatch = new Service.LockMechanism(this.name + " ALWAYS Unlatch", this.name + " ALWAYS Unlatch");
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateAlwaysUnlatch.bind(this));
     this.lockServiceAlwaysUnlatch.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateAlwaysUnlatch.bind(this)).on('set', this.setStateAlwaysUnlatch.bind(this));
+    this.services.push(this.lockServiceAlwaysUnlatch);
 
     this.switchUnlatchAllowedService = new Service.Switch(this.name + " Unlatch Allowed");
     this.switchUnlatchAllowedService.getCharacteristic(Characteristic.On).on('get', this.getStateSwitchUnlatchAllowed.bind(this)).on('set', this.setStateSwitchUnlatchAllowed.bind(this));
+    this.services.push(this.switchUnlatchAllowedService);
   }
   if (this.usesDoorContactSensor) {
     this.doorContactSensor = new Service.ContactSensor(this.name + " Contact Sensor");
     this.doorContactSensor.getCharacteristic(Characteristic.ContactSensorState).on('get', this.getStateContactSensor.bind(this));
+    this.services.push(this.doorContactSensor);
   }
 
   this.battservice = new Service.BatteryService(this.name);
   this.battservice.getCharacteristic(Characteristic.BatteryLevel).on('get', this.getBattery.bind(this));
   this.battservice.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
+  this.services.push(this.battservice);
 
   var webHookCallback = (function(isLocked, batteryCritical, contactClosed, mode) {
     var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
@@ -244,10 +252,7 @@ NukiLockAccessory.prototype._getSwitchUnlatchAllowedStorageKey = function() {
 };
 
 NukiLockAccessory.prototype.getServices = function() {
-  if (this.usesDoorLatch) {
-    return [ this.lockServiceUnlock, this.lockServiceAlwaysUnlatch, this.switchUnlatchAllowedService, this.informationService, this.battservice ];
-  }
-  return [ this.lockServiceUnlock, this.informationService, this.battservice ];
+  return this.services;
 };
 
 module.exports = NukiLockAccessory;
