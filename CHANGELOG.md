@@ -1,3 +1,9 @@
+## 0.11.1
+
+Bugfix:
+
+  - Fixed battery status after homebridge restart.
+
 ## 0.11.0
 
 New features:

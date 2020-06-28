@@ -52,6 +52,7 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
 
     var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(newHomeKitStateBatteryCritical ? Constants.BATTERY_LOW : Constants.BATTERY_FULL, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.log("HomeKit state change by webhook complete. New isRingToOpenLocked = '%s' and batteryCritical = '%s' and mode = '%s'.", isRingToOpenLocked, batteryCritical, mode);
   }).bind(this);
 
@@ -75,6 +76,10 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
 
   this.lockServiceOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
   this.lockServiceOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
+
+  var isBatteryLowCached = this.nukiLock.getIsBatteryLowCached();
+  this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(isBatteryLowCached, undefined, null);
+  this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(isBatteryLowCached ? Constants.BATTERY_LOW : Constants.BATTERY_FULL, undefined, null);
 };
 
 NukiOpenerAccessory.prototype.getStateRingToOpen = function(callback) {
@@ -264,7 +269,16 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
 };
 
 NukiOpenerAccessory.prototype.getBattery = function(callback) {
-  callback(null, 100);
+  var getLowBattCallback = (function(err, lowBattery) {
+    if (err) {
+      this.log("An error occured retrieving battery status. Reason: %s", err);
+      callback(err);
+    }
+    else {
+      callback(null, lowBattery ? Constants.BATTERY_LOW : Constants.BATTERY_FULL);
+    }
+  }).bind(this);
+  this.nukiLock.getLowBatt(getLowBattCallback);
 };
 
 NukiOpenerAccessory.prototype.getCharging = function(callback) {

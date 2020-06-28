@@ -57,6 +57,7 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
     this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(newHomeKitStateBatteryCritical ? Constants.BATTERY_LOW : Constants.BATTERY_FULL, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     if (this.usesDoorContactSensor) {
       this.doorContactSensor.getCharacteristic(Characteristic.ContactSensorState).updateValue(contactClosed ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     }
@@ -79,6 +80,9 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
     var isUnlatchAllowed = this._isUnlatchAllowed();
     this.switchUnlatchAllowedService.getCharacteristic(Characteristic.On).updateValue(isUnlatchAllowed, undefined, null);
   }
+  var isBatteryLowCached = this.nukiLock.getIsBatteryLowCached();
+  this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(isBatteryLowCached, undefined, null);
+  this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(isBatteryLowCached ? Constants.BATTERY_LOW : Constants.BATTERY_FULL, undefined, null);
 };
 
 NukiLockAccessory.prototype.getState = function(callback) {
@@ -207,7 +211,16 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
 };
 
 NukiLockAccessory.prototype.getBattery = function(callback) {
-  callback(null, 100);
+  var getLowBattCallback = (function(err, lowBattery) {
+    if (err) {
+      this.log("An error occured retrieving battery status. Reason: %s", err);
+      callback(err);
+    }
+    else {
+      callback(null, lowBattery ? Constants.BATTERY_LOW : Constants.BATTERY_FULL);
+    }
+  }).bind(this);
+  this.nukiLock.getLowBatt(getLowBattCallback);
 };
 
 NukiLockAccessory.prototype.getCharging = function(callback) {
