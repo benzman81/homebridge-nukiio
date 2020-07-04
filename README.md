@@ -54,6 +54,8 @@ Example config.json:
                     {
                         "id": "your-opener-nukiid",
                         "name": "Main Opener",
+                        "disableRingToOpen": false,
+                        "disableContinuousMode": false,
                         "priority" : 1 // (optional, default: 99 [openers with higher priority {lower number} will be proccessed first])
                     }
                 ]

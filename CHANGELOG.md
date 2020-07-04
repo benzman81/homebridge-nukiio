@@ -1,3 +1,9 @@
+## 0.12.0
+
+New features:
+
+  - Make lock "ring to open" and "continuous mode" optional.
+
 ## 0.11.1
 
 Bugfix:
