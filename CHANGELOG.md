@@ -1,3 +1,9 @@
+## 0.13.0
+
+New features:
+
+  - Support Config UI X.
+
 ## 0.12.0
 
 New features:

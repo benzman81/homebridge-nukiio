@@ -1,0 +1,226 @@
+{
+  "pluginAlias": "homebridge-nukiio",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "TODO Optional content to display above the plugin config. Supports markdown.",
+  "footerDisplay": "TODO Optional content to display below the plugin config. Supports markdown.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "bridge_url": {
+        "title": "Bridge URL",
+        "description": "The URL of the Nuki bridge.",
+        "default": "http://",
+        "type": "string",
+        "required": true,
+        "format": "uri"
+      },
+      "api_token": {
+        "title": "Bridge API Token",
+        "description": "The API Token of the Nuki bridge. Can be configured when setting up the bridge in the Nuki App.",
+        "type": "string",
+        "required": true
+      },
+      "lock_state_mode": {
+        "title": "Lock state mode",
+        "description": "The mode to evaluate lock states. See readme for details.",
+        "default": 0,
+        "oneOf": [
+          { "title": "Always request lock states", "enum": [0] },
+          { "title": "Use plugin cache", "enum": [1] },
+          { "title": "Use bridge cache", "enum": [2] }
+        ],
+        "type": "integer",
+        "required": true
+      },
+      "webhook_server_ip_or_name": {
+        "title": "Webhook server IP/name",
+        "description": "The IP or name of the server receiving the webhook (server that is running homebridge).",
+        "type": "string"
+      },
+      "webhook_port": {
+        "title": "Webhook port",
+        "description": "The port the webhook server should listen to. Must be free and not the hombridge port.",
+        "default": 51827,
+        "type": "integer",
+        "minimum": 1
+      },
+      "cache_directory": {
+        "title": "Cache directory",
+        "description": "The directory where to write the cache. It must point to a valid and empty directory and the user that runs homebridge must have write access.",
+        "default": "./.node-persist/storage",
+        "type": "string",
+        "required": true
+      },
+      "request_timeout_lockstate": {
+        "title": "Request timeout lock state",
+        "description": "The request time of for requesting lock state.",
+        "default": 15000,
+        "type": "integer",
+        "minimum": 1
+      },
+      "request_timeout_lockaction": {
+        "title": "Request timeout lock action",
+        "description": "The request time of for requesting lock action.",
+        "default": 45000,
+        "type": "integer",
+        "minimum": 1
+      },
+      "request_timeout_other": {
+        "title": "Request timeout other",
+        "description": "The request time of for other requests.",
+        "default": 15000,
+        "type": "integer",
+        "minimum": 1
+      },
+      "lockaction_maxtries": {
+        "title": "Maxiumum retries lock action",
+        "description": "The maxiumum retries for lock action.",
+        "default": 3,
+        "type": "integer",
+        "minimum": 1
+      },
+      "lockaction_retrydelay": {
+        "title": "Retry delay lock action",
+        "description": "The retry delay for lock action.",
+        "default": 3000,
+        "type": "integer",
+        "minimum": 1
+      },
+      "add_maintainance_buttons": {
+        "title": "Maintainance buttons",
+        "description": "Add maintainance buttons. If active, than three switches will be added as accessory to do reboot, firmware update, and to refresh all locks states.",
+        "default": false,
+        "type": "boolean"
+      },
+      "locks": {
+        "title": "Locks",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Lock ID",
+              "description": "The ID of the lock. Can be found when calling http://your-nuki-bridge-url/list?token=your-nuki-api-token in a browser.",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "description": "The name of the lock to use in Homekit.",
+              "type": "string"
+            },
+            "usesDoorLatch": {
+              "title": "Uses door latch",
+              "description": "Does your door use a door latch?",
+              "default": false,
+              "type": "boolean"
+            },
+            "usesDoorContactSensor": {
+              "title": "Uses door sesonr",
+              "description": "Does your nuki use a door sensor?",
+              "default": false,
+              "type": "boolean"
+            },
+            "priority": {
+              "title": "Priority",
+              "description": "The priority of the lock. Locks with higher priority {lower number} will be proccessed first.",
+              "default": 99,
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [ "id", "name"]
+        }
+      },
+      "openers": {
+        "title": "Openers",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Opener ID",
+              "description": "The ID of the opener. Can be found when calling http://your-nuki-bridge-url/list?token=your-nuki-api-token in a browser.",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "description": "The name of the opener to use in Homekit.",
+              "type": "string"
+            },
+            "disableRingToOpen": {
+              "title": "Disable RingToOpen",
+              "description": "Removes lock accessory for setting RingToOpen",
+              "default": false,
+              "type": "boolean"
+            },
+            "disableContinuousMode": {
+              "title": "Disable ContinuousMode",
+              "description": "Removes lock accessory for setting ContinuousMode",
+              "default": false,
+              "type": "boolean"
+            },
+            "priority": {
+              "title": "Priority",
+              "description": "The priority of the opener. Openers with higher priority {lower number} will be proccessed first.",
+              "default": 99,
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [ "id", "name"]
+        }
+      }
+    }
+  },
+  "form": [
+    "bridge_url",
+    {
+      "key": "api_token",
+      "type": "password"
+    },
+    "lock_state_mode",
+    {
+      "key": "webhook_server_ip_or_name",
+      "condition": {
+        "functionBody":"try { return model.lock_state_mode===1} catch(e){return false}"
+      },
+      "required": true
+    },
+    {
+      "key": "webhook_port",
+      "condition": {
+        "functionBody":"try { return model.lock_state_mode===1} catch(e){return false}"
+      },
+      "required": true
+    },
+    "cache_directory",
+    "request_timeout_lockstate",
+    "request_timeout_lockaction",
+    "request_timeout_other",
+    "lockaction_maxtries",
+    "lockaction_retrydelay",
+    "add_maintainance_buttons",
+    {
+      "key": "locks",
+      "items": [
+        "locks[].id",
+        "locks[].name",
+        "locks[].usesDoorLatch",
+        "locks[].usesDoorContactSensor",
+        "locks[].priority"
+      ]
+    },
+    {
+      "key": "openers",
+      "items": [
+        "openers[].id",
+        "openers[].name",
+        "openers[].disableRingToOpen",
+        "openers[].disableContinuousMode",
+        "openers[].priority"
+      ]
+    }
+  ]
+
+}
