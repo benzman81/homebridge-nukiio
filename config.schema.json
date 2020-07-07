@@ -1,9 +1,8 @@
 {
-  "pluginAlias": "homebridge-nukiio",
+  "pluginAlias": "NukiBridge",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "TODO Optional content to display above the plugin config. Supports markdown.",
-  "footerDisplay": "TODO Optional content to display below the plugin config. Supports markdown.",
+  "headerDisplay": "Nuki.io support for Homebridge that supports Nuki Lock and Nuki Opener.",
   "schema": {
     "type": "object",
     "properties": {
@@ -47,10 +46,9 @@
       },
       "cache_directory": {
         "title": "Cache directory",
-        "description": "The directory where to write the cache. It must point to a valid and empty directory and the user that runs homebridge must have write access.",
-        "default": "./.node-persist/storage",
-        "type": "string",
-        "required": true
+        "description": "The directory where to write the cache. Default is in hombridge storage path '.homebridge-nukiio'. It must point to a valid and empty directory and the user that runs homebridge must have write access.",
+        "default": "",
+        "type": "string"
       },
       "request_timeout_lockstate": {
         "title": "Request timeout lock state",

@@ -3,7 +3,7 @@ var http = require('http');
 
 const Constants = require('../Constants');
 
-function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
+function NukiBridge(homebridge, log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
   this.log = log;
   this.bridgeUrl = bridgeUrl;
   if (this.bridgeUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
@@ -31,7 +31,7 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
     this.requestTimeoutOther = Constants.DEFAULT_REQUEST_TIMEOUT_OTHER;
   }
   if (this.cacheDirectory == null || this.cacheDirectory == "") {
-    this.cacheDirectory = Constants.DEFAULT_CACHE_DIRECTORY;
+    this.cacheDirectory = homebridge.user.storagePath() + "/" + Constants.DEFAULT_CACHE_DIRECTORY_NAME;
   }
   if (this.lockStateMode == null || this.lockStateMode == "") {
     this.lockStateMode = Constants.LOCK_STATE_MODE_REQUEST_LOCKSTATE;

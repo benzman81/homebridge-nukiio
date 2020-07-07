@@ -1,3 +1,13 @@
+## 0.13.1
+
+New features:
+
+  - Now the cache by default is stored in hombridge storage path '.homebridge-nukiio'.
+
+Bugfix:
+
+  - Fixed Config UI X schema file.
+
 ## 0.13.0
 
 New features:

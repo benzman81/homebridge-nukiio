@@ -34,7 +34,7 @@ Example config.json:
                 "request_timeout_lockstate": 30000, // (in ms, optional, default: 15000)
                 "request_timeout_lockaction": 60000, // (in ms, optional, default: 45000)
                 "request_timeout_other": 30000, // (in ms, optional, default: 15000)
-                "cache_directory": "./.node-persist/storage", // (optional, default: "./.node-persist/storage")
+                "cache_directory": ".myFolder/.node-persist/storage", // (optional, default is in hombridge storage path '.homebridge-nukiio')
                 "webhook_server_ip_or_name": "xxx.xxx.xxx.xxx", // (optional, must be the IP/Hostname of the server running homebridge)
                 "webhook_port": 51827, // (optional, default: 51827, must be a free port on the server running homebridge, NOT the same as homebridge)
                 "lock_state_mode": 0, // (see below, optional, default: 0)

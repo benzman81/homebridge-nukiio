@@ -13,7 +13,7 @@ function NukiBridgePlatform(log, config, homebridge) {
   Characteristic = homebridge.hap.Characteristic;
 
   this.log = log;
-  this.nukiBridge = new NukiBridge(this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
+  this.nukiBridge = new NukiBridge(homebridge, this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
   this.locks = config["locks"] || [];
   this.openers = config["openers"] || [];
   this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
