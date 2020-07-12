@@ -1,3 +1,10 @@
+## 0.13.2
+
+Bugfix:
+
+  - Fixed Config UI X schema file to not generate lock or opener for empty config.
+  - Fixed that homebrige crashes if there is invalid config.
+
 ## 0.13.1
 
 New features:

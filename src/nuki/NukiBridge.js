@@ -41,7 +41,7 @@ function NukiBridge(homebridge, log, bridgeUrl, apiToken, requestTimeoutLockStat
   }
 
   if ((this.webHookServerIpOrName == null || this.webHookServerIpOrName == "") && this.lockStateMode === Constants.LOCK_STATE_MODE_ONLY_CACHE) {
-    throw new Error("Lock state mode 1 can only be used with webhooks configured. Yout need to enter a valid webhook server ip/name or use lock state mode 0.");
+    this.log("Lock state mode 1 can only be used with webhooks configured. Yout need to enter a valid webhook server ip/name or use lock state mode 0 otherwise no lock state change will be recognized.");
   }
 
   this.storage = require('node-persist');

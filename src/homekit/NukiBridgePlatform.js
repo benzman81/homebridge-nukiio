@@ -13,7 +13,16 @@ function NukiBridgePlatform(log, config, homebridge) {
   Characteristic = homebridge.hap.Characteristic;
 
   this.log = log;
-  this.nukiBridge = new NukiBridge(homebridge, this.log, config["bridge_url"], config["api_token"], config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
+
+  var bridge_url = config["bridge_url"];
+  var api_token = config["api_token"];
+
+  if(!bridge_url || bridge_url === "" || !api_token || api_token === "") {
+    this.log("Nuki platform config is incomplete. You need to set 'bridge_url' and 'api_token'.");
+    return;
+  }
+
+  this.nukiBridge = new NukiBridge(homebridge, this.log, bridge_url, api_token, config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
   this.locks = config["locks"] || [];
   this.openers = config["openers"] || [];
   this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
@@ -30,16 +39,30 @@ function NukiBridgePlatform(log, config, homebridge) {
 NukiBridgePlatform.prototype.accessories = function(callback) {
   var accessories = [];
   var nukiLocks = [];
-  for (var i = 0; i < this.locks.length; i++) {
-    var lock = new NukiLockAccessory(Service, Characteristic, this.log, this.locks[i], this.nukiBridge, this);
-    accessories.push(lock);
-    nukiLocks.push(lock);
+  if(this.locks) {
+    for (var i = 0; i < this.locks.length; i++) {
+      var lockConfig = this.locks[i];
+      if(!lockConfig["id"] || lockConfig["id"] === "" || !lockConfig["name"] || lockConfig["name"] === "") {
+        this.log("Lock config '%s' is incomplete. You need to set 'id' and 'name'.", i);
+        continue;
+      }
+      var lock = new NukiLockAccessory(Service, Characteristic, this.log, lockConfig, this.nukiBridge, this);
+      accessories.push(lock);
+      nukiLocks.push(lock);
+    }
   }
   var nukiOpeners = [];
-  for (var j = 0; j < this.openers.length; j++) {
-    var opener = new NukiOpenerAccessory(Service, Characteristic, this.log, this.openers[j], this.nukiBridge, this);
-    accessories.push(opener);
-    nukiOpeners.push(opener);
+  if(this.openers) {
+    for (var j = 0; j < this.openers.length; j++) {
+      var openerConfig = this.openers[j];
+      if(!openerConfig["id"] || openerConfig["id"] === "" || !openerConfig["name"] || openerConfig["name"] === "") {
+        this.log("Opener config '%s' is incomplete. You need to set 'id' and 'name'.", j);
+        continue;
+      }
+      var opener = new NukiOpenerAccessory(Service, Characteristic, this.log, openerConfig, this.nukiBridge, this);
+      accessories.push(opener);
+      nukiOpeners.push(opener);
+    }
   }
   if (this.addMaintainanceButtons) {
     accessories.push(new NukiBridgeMaintainanceSwitchAccessory(Service, Characteristic, this.log, "maintainance-switch-reboot", "Nuki Bridge Reboot", this.nukiBridge, nukiLocks, nukiOpeners));
