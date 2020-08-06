@@ -50,18 +50,20 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
   this.services.push(this.battservice);
 
-  var webHookCallback = (function(isLocked, batteryCritical, contactClosed, mode) {
+  var webHookCallback = (function(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode) {
     var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
     var newHomeKitStateLockedTarget = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-    var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    var newHomeKitStateBatteryCharging = batteryCharging ? Characteristic.ChargingState.CHARGING : Characteristic.ChargingState.NOT_CHARGING;
     this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateLocked, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateLockedTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-    this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(newHomeKitStateBatteryCritical ? Constants.BATTERY_LOW : Constants.BATTERY_FULL, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryChargeState, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    this.battservice.getCharacteristic(Characteristic.ChargingState).updateValue(newHomeKitStateBatteryCharging, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     if (this.usesDoorContactSensor) {
       this.doorContactSensor.getCharacteristic(Characteristic.ContactSensorState).updateValue(contactClosed ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     }
-    this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s' and contactClosed = '%s'.", isLocked, batteryCritical, contactClosed);
+    this.log("HomeKit state change by webhook complete. New isLocked = '%s' and batteryCritical = '%s', battery charging = '%s', battery charge state = '%s' and contactClosed = '%s'.", isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed);
   }).bind(this);
 
   this.nukiLock = new NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
@@ -81,8 +83,11 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
     this.switchUnlatchAllowedService.getCharacteristic(Characteristic.On).updateValue(isUnlatchAllowed, undefined, null);
   }
   var isBatteryLowCached = this.nukiLock.getIsBatteryLowCached();
-  this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(isBatteryLowCached, undefined, null);
-  this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(isBatteryLowCached ? Constants.BATTERY_LOW : Constants.BATTERY_FULL, undefined, null);
+  var batteryChargingCached = this.nukiLock.getBatteryChargingCached();
+  var batteryChargeStateCached = this.nukiLock.getBatteryChargeStateCached();
+  this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(isBatteryLowCached ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL, undefined, null);
+  this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryChargeStateCached, undefined, null);
+  this.battservice.getCharacteristic(Characteristic.ChargingState).updateValue(batteryChargingCached ? Characteristic.ChargingState.CHARGING : Characteristic.ChargingState.NOT_CHARGING, undefined, null);
 };
 
 NukiLockAccessory.prototype.getState = function(callback) {
@@ -211,20 +216,29 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
 };
 
 NukiLockAccessory.prototype.getBattery = function(callback) {
-  var getLowBattCallback = (function(err, lowBattery) {
+  var getChargeStateCallback = (function(err, chargeState) {
     if (err) {
       this.log("An error occured retrieving battery status. Reason: %s", err);
       callback(err);
     }
     else {
-      callback(null, lowBattery ? Constants.BATTERY_LOW : Constants.BATTERY_FULL);
+      callback(null, chargeState);
     }
   }).bind(this);
-  this.nukiLock.getLowBatt(getLowBattCallback);
+  this.nukiLock.getChargeState(getChargeStateCallback);
 };
 
 NukiLockAccessory.prototype.getCharging = function(callback) {
-  callback(null, Characteristic.ChargingState.NOT_CHARGEABLE);
+  var getChargingCallback = (function(err, charging) {
+    if (err) {
+      this.log("An error occured retrieving battery status. Reason: %s", err);
+      callback(err);
+    }
+    else {
+      callback(null, charging ? Characteristic.ChargingState.CHARGING : Characteristic.ChargingState.NOT_CHARGING);
+    }
+  }).bind(this);
+  this.nukiLock.getCharging(getChargingCallback);
 };
 
 NukiLockAccessory.prototype.getLowBatt = function(callback) {

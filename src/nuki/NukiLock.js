@@ -38,17 +38,21 @@ NukiLock.prototype.isLocked = function isLocked(callback /* (err, isLocked) */, 
       else {
         var state = Constants.NUKI_LOCK_STATE_UNDEFINED;
         var batteryCritical = false;
+        var batteryCharging = false;
+        var batteryChargeState = 100;
         var contactClosed = true;
         var mode = 2;
         if (json) {
           state = json.state;
           batteryCritical = json.batteryCritical;
+          batteryCharging = json.batteryCharging === true;
+          batteryChargeState = json.batteryChargeState ? json.batteryChargeState: batteryCritical ? Constants.BATTERY_LOW : Constants.BATTERY_FULL;
           contactClosed = json.doorsensorState !== 3;
           mode = json.mode;
         }
         var isLocked = this._isLocked(state);
-        this.log("Lock state is isLocked = '%s' (Nuki state '%s' ) with battery critical = '%s', contactClosed = '%s' and mode = '%s'", isLocked, state, batteryCritical, contactClosed, mode);
-        this._setLockCache(isLocked, batteryCritical, contactClosed, mode);
+        this.log("Lock state is isLocked = '%s' (Nuki state '%s' ) with battery critical = '%s', battery charging = '%s', battery charge state = '%s', contactClosed = '%s' and mode = '%s'", isLocked, state, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode);
+        this._setLockCache(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode);
         callback(null, isLocked);
       }
     }).bind(this);
@@ -76,6 +80,14 @@ NukiLock.prototype.isContactClosed = function isContactClosed(callback /* (err, 
 
 NukiLock.prototype.getLowBatt = function getLowBatt(callback /* (err, lowBattt) */) {
   callback(null, this.getIsBatteryLowCached());
+};
+
+NukiLock.prototype.getCharging = function getCharging(callback /* (err, charging) */) {
+  callback(null, this.getBatteryChargingCached());
+};
+
+NukiLock.prototype.getChargeState = function getChargeState(callback /* (err, chargeState) */) {
+  callback(null, this.getBatteryChargeStateCached());
 };
 
 NukiLock.prototype._isLocked = function _isLocked(state) {
@@ -157,6 +169,22 @@ NukiLock.prototype.getIsBatteryLowCached = function getIsBatteryLowCached() {
   return lockCache.batteryCritical;
 };
 
+NukiLock.prototype.getBatteryChargingCached = function getBatteryChargingCached() {
+  var lockCache = this.nukiBridge.storage.getItemSync(this._getLockStorageKey());
+  if (lockCache === undefined) {
+    return false;
+  }
+  return lockCache.batteryCharging;
+};
+
+NukiLock.prototype.getBatteryChargeStateCached = function getBatteryChargeStateCached() {
+  var lockCache = this.nukiBridge.storage.getItemSync(this._getLockStorageKey());
+  if (lockCache === undefined) {
+    return false;
+  }
+  return lockCache.batteryChargeState;
+};
+
 NukiLock.prototype.getModeCached = function getModeCached() {
   var lockCache = this.nukiBridge.storage.getItemSync(this._getLockStorageKey());
   if (lockCache === undefined) {
@@ -165,10 +193,12 @@ NukiLock.prototype.getModeCached = function getModeCached() {
   return lockCache.mode;
 };
 
-NukiLock.prototype._setLockCache = function _setLockCache(isLocked, batteryCritical, contactClosed, mode) {
+NukiLock.prototype._setLockCache = function _setLockCache(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode) {
   var newCache = {
     isLocked : this.getIsLockedCached(),
     batteryCritical : this.getIsBatteryLowCached(),
+    batteryCharging : this.getBatteryChargingCached(),
+    batteryChargeState : this.getBatteryChargeStateCached(),
     contactClosed : this._getIsContactClosed(),
     mode : this.getModeCached()
   }
@@ -177,6 +207,12 @@ NukiLock.prototype._setLockCache = function _setLockCache(isLocked, batteryCriti
   }
   if (batteryCritical !== undefined && batteryCritical !== null) {
     newCache.batteryCritical = batteryCritical;
+  }
+  if (batteryCharging !== undefined && batteryCharging !== null) {
+    newCache.batteryCharging = batteryCharging;
+  }
+  if (batteryChargeState !== undefined && batteryChargeState !== null) {
+    newCache.batteryChargeState = batteryChargeState;
   }
   if (contactClosed !== undefined && contactClosed !== null) {
     newCache.contactClosed = contactClosed;

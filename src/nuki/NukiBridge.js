@@ -95,6 +95,8 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
         var nukiId = json.nukiId + "";
         var state = json.state;
         var batteryCritical = json.batteryCritical === true || json.batteryCritical === "true";
+        var batteryCharging = json.batteryCharging === true || json.batteryCharging === "true";
+        var batteryChargeState = json.batteryChargeState ? json.batteryChargeState: batteryCritical ? Constants.BATTERY_LOW : Constants.BATTERY_FULL;
         var contactClosed =  json.doorsensorState !== 3;
         var mode = json.mode;
         var lock = this._getLock(nukiId);
@@ -110,9 +112,9 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
             success : true
           };
           var isLocked = lock._isLocked(state);
-          lock._setLockCache(isLocked, batteryCritical, contactClosed, mode);
-          log("[INFO Nuki WebHook Server] Updated lock state from webhook to isLocked = '%s' (Nuki state '%s' ) for lock '%s' (instance id '%s') with batteryCritical = '%s', contactClosed = '%s' and mode = '%s'.", isLocked, state, lock.id, lock.instanceId, batteryCritical, contactClosed, mode);
-          lock.webHookCallback(isLocked, batteryCritical, contactClosed, mode);
+          lock._setLockCache(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode);
+          log("[INFO Nuki WebHook Server] Updated lock state from webhook to isLocked = '%s' (Nuki state '%s' ) for lock '%s' (instance id '%s') with batteryCritical = '%s', battery charging = '%s', battery charge state = '%s', contactClosed = '%s' and mode = '%s'.", isLocked, state, lock.id, lock.instanceId, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode);
+          lock.webHookCallback(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode);
           response.write(JSON.stringify(responseBody));
           response.end();
         }

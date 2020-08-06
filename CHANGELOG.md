@@ -1,3 +1,9 @@
+## 0.14.0
+
+New features:
+
+  - Support Nuki battery charging and battery charging state (needs bridge firmware version 2.7.0 or 1.17.0 and smart lock firmware version 2.8.1/1.10.0).
+
 ## 0.13.2
 
 Bugfix:
