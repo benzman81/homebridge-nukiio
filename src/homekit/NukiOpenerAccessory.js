@@ -36,12 +36,14 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
     this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateContinuousMode.bind(this)).on('set', this.setState.bind(this, "lockngo"));
   }
 
+  this.doorbellService = new Service.Doorbell("Doorbell " + this.name, "Doorbell " + this.name);
+
   this.battservice = new Service.BatteryService(this.name);
   this.battservice.getCharacteristic(Characteristic.BatteryLevel).on('get', this.getBattery.bind(this));
   this.battservice.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
 
-  var webHookCallback = (function(isRingToOpenLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode) {
+  var webHookCallback = (function(isRingToOpenLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode, ringactionState) {
     var isContinuousMode = mode === 3;
     if(!this.disableContinuousMode) {
       var newHomeKitStateContinuousMode = isContinuousMode ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
@@ -65,7 +67,11 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
     this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryChargeState, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.battservice.getCharacteristic(Characteristic.ChargingState).updateValue(newHomeKitStateBatteryCharging, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-    this.log("HomeKit state change by webhook complete. New isRingToOpenLocked = '%s' and batteryCritical = '%s', battery charging = '%s', battery charge state = '%s' and mode = '%s'.", isRingToOpenLocked, batteryCritical, batteryCharging, batteryChargeState, mode);
+
+    if(ringactionState === true) {
+      this.doorbellService.updateCharacteristic(Characteristic.ProgrammableSwitchEvent, 0);
+    }
+    this.log("HomeKit state change by webhook complete. New isRingToOpenLocked = '%s' and batteryCritical = '%s', battery charging = '%s', battery charge state = '%s' and mode = '%s', ringactionState = '%s'.", isRingToOpenLocked, batteryCritical, batteryCharging, batteryChargeState, mode, ringactionState);
   }).bind(this);
 
   this.nukiLock = new NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
@@ -333,7 +339,7 @@ NukiOpenerAccessory.prototype.getLowBatt = function(callback) {
 };
 
 NukiOpenerAccessory.prototype.getServices = function() {
-  var services = [ this.lockServiceOpen, this.informationService, this.battservice ];
+  var services = [ this.lockServiceOpen, this.informationService, this.doorbellService, this.battservice ];
   if(!this.disableRingToOpen) {
     services.push(this.lockServiceRingToOpen);
   }

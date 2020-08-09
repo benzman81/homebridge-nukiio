@@ -1,3 +1,9 @@
+## 0.15.0
+
+New features:
+
+  - Support Nuki Opener ringactionState in callback as doorbell.
+
 ## 0.14.0
 
 New features:

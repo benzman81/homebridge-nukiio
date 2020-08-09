@@ -50,7 +50,7 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
   this.services.push(this.battservice);
 
-  var webHookCallback = (function(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode) {
+  var webHookCallback = (function(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode, ringactionState) {
     var newHomeKitStateLocked = isLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
     var newHomeKitStateLockedTarget = isLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
     var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
