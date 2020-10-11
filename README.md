@@ -49,6 +49,7 @@ Example config.json:
                         "name": "Front Door",
                         "usesDoorLatch" : true, // (default: false)
                         "usesDoorContactSensor" : true, // (default: false)
+                        "preventLockingIfAlreadyLocked" : true, // (default: false)
                         "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
                     }
                 ],
@@ -88,6 +89,10 @@ You can define if a door uses a door latch by setting 'usesDoorLatch' to true. I
 pulling the door latch ("lockname") and one that always is displayed as locked and pulls the door latch on unlock ("lockname ALWAYS Unlatch").
 You will now also get a switch in the lock to enable/disbale unlatching so you can use automations to switch to desired state (i.e. based on location or time).
 This was implemented to prevent accidental unlatch of door.
+
+## preventLockingIfAlreadyLocked
+This setting is usefull if you have a lock that is set to turn only 360 degrees instead of 720. Setting preventLockingIfAlreadyLocked to true avoids a second lock action so that the lock
+will never lock to 720. Use this setting carefully as this might not lock your lock if a wrong state is present in homebridge for any reason.
 
 ## Nuki Opener
 If you configure a Nuki opener you will get three lock accessories. One to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.

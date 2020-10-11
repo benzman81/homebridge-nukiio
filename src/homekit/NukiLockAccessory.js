@@ -13,6 +13,7 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
   this.name = config["name"];
   this.usesDoorLatch = config["usesDoorLatch"] === true || false;
   this.usesDoorContactSensor = config["usesDoorContactSensor"] === true || false;
+  this.preventLockingIfAlreadyLocked = config["preventLockingIfAlreadyLocked"] === true || false;
   this.nukiBridge = nukiBridge;
   this.nukiBridgePlatform = nukiBridgePlatform;
   this.deviceType = 0;
@@ -162,6 +163,18 @@ NukiLockAccessory.prototype.setState = function(homeKitState, callback, context)
   var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
   var newHomeKitState = doLock ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
   var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+
+  var isLockedCached = this.nukiLock.getIsLockedCached();
+  if(this.preventLockingIfAlreadyLocked && isLockedCached === doLock) {
+    this.log("Prevented lock as preventLockingIfAlreadyLocked=true and lock is already locked.");
+    this.lockServiceUnlock.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
+    this.lockServiceUnlock.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+    if (callback) {
+      callback(null);
+    }
+    return;
+  }
+
   var lockStateChangeCallback = (function(params, err, json) {
     if (err && err.retryableError) {
       if (params.lockTry < this.nukiBridgePlatform.lockactionMaxtries) {

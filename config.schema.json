@@ -117,6 +117,11 @@
               "description": "Does your nuki use a door sensor?",
               "type": "boolean"
             },
+            "preventLockingIfAlreadyLocked": {
+              "title": "Prevent locking if already locked",
+              "description": "Can be used for locks set to turn 360 degrees to not lock twice.",
+              "type": "boolean"
+            },
             "priority": {
               "title": "Priority",
               "description": "The priority of the lock. Locks with higher priority {lower number} will be proccessed first.",

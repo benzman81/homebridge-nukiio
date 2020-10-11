@@ -1,3 +1,9 @@
+## 0.15.1
+
+New features:
+
+  - New setting for locks preventLockingIfAlreadyLocked.
+
 ## 0.15.0
 
 New features:
