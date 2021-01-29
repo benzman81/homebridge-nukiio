@@ -1,9 +1,10 @@
 var request = require("request");
 var http = require('http');
+var crypto = require('crypto');
 
 const Constants = require('../Constants');
 
-function NukiBridge(homebridge, log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
+function NukiBridge(homebridge, log, bridgeUrl, apiToken, apiTokenHashed, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
   this.log = log;
   this.bridgeUrl = bridgeUrl;
   if (this.bridgeUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
@@ -14,6 +15,7 @@ function NukiBridge(homebridge, log, bridgeUrl, apiToken, requestTimeoutLockStat
   }
   this.log("Initializing Nuki bridge '%s'...", this.bridgeUrl);
   this.apiToken = apiToken;
+  this.apiTokenHashed = apiTokenHashed;
   this.requestTimeoutLockState = requestTimeoutLockState;
   this.requestTimeoutLockAction = requestTimeoutLockAction;
   this.requestTimeoutOther = requestTimeoutOther;
@@ -345,7 +347,19 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
   if(!queryObject) {
     queryObject = {}
   }
-  queryObject.token  = this.apiToken;
+  if(this.apiTokenHashed === true) {
+    var currentTs = new Date().toISOString().replace(/[.]\d+/, '');
+    var randomNum = Math.floor(Math.random() * 65535) + 1 ;
+    var toHash = currentTs+","+randomNum+","+this.apiToken;
+    var hash = crypto.createHash('sha256').update(toHash).digest('hex');
+    queryObject.ts  = currentTs;
+    queryObject.rnr  = randomNum;
+    queryObject.hash  = hash;
+  }
+  else {
+    queryObject.token  = this.apiToken;
+  }
+
   if (queryObject.deviceType === 2 && Constants.DUMMY_BRIDGE_FOR_OPENER === true) {
     toBridgeUrl = "http://10.0.1.108:8881";
   }

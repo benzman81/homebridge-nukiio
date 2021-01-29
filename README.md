@@ -33,6 +33,7 @@ Example config.json:
                 "platform": "NukiBridge",
                 "bridge_url": "your-nuki-bridge-url",
                 "api_token" : "your-nuki-api-token",
+                "api_token_hashed": true, // (optional, default: false)
                 "request_timeout_lockstate": 30000, // (in ms, optional, default: 15000)
                 "request_timeout_lockaction": 60000, // (in ms, optional, default: 45000)
                 "request_timeout_other": 30000, // (in ms, optional, default: 15000)

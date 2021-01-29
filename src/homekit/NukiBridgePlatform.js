@@ -16,13 +16,14 @@ function NukiBridgePlatform(log, config, homebridge) {
 
   var bridge_url = config["bridge_url"];
   var api_token = config["api_token"];
+  var api_token_hashed = config["api_token_hashed"] || false;
 
   if(!bridge_url || bridge_url === "" || !api_token || api_token === "") {
     this.log("Nuki platform config is incomplete. You need to set 'bridge_url' and 'api_token'.");
     return;
   }
 
-  this.nukiBridge = new NukiBridge(homebridge, this.log, bridge_url, api_token, config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
+  this.nukiBridge = new NukiBridge(homebridge, this.log, bridge_url, api_token, api_token_hashed, config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
   this.locks = config["locks"] || [];
   this.openers = config["openers"] || [];
   this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;

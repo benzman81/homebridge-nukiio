@@ -1,3 +1,9 @@
+## 0.15.2
+
+New features:
+
+  - New setting for sending hashed token instead of plaintext.
+
 ## 0.15.1
 
 New features:

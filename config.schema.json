@@ -20,6 +20,12 @@
         "type": "string",
         "required": true
       },
+      "api_token_hashed": {
+        "title": "Send Bridge API Token Hashed",
+        "description": "Send Bridge API Token using a hash. By default it is plaintext.",
+        "default": false,
+        "type": "boolean"
+      },
       "lock_state_mode": {
         "title": "Lock state mode",
         "description": "The mode to evaluate lock states. See readme for details.",
