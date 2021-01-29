@@ -155,7 +155,6 @@ NukiBridge.prototype._addWebhookToBridge = function _addWebhookToBridge() {
 NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest) {
   if (!this.runningRequest && doRequest) {
     this._sendRequest("/callback/list", {
-      token : this.apiToken
     }, this.requestTimeoutOther, callback);
   }
   else {
@@ -176,7 +175,6 @@ NukiBridge.prototype._addCallback = function _addCallback(doRequest) {
       }
     }).bind(this);
     this._sendRequest("/callback/add", {
-      token : this.apiToken,
       url : this.webHookUrl
     }, this.requestTimeoutOther, callback);
   }
@@ -195,7 +193,6 @@ NukiBridge.prototype.reboot = function reboot(callback, doRequest) {
       }).bind(this), Constants.REBOOT_WAIT_TIME);
     }).bind(this);
     this._sendRequest("/reboot", {
-      token : this.apiToken
     }, this.requestTimeoutOther, callbackWrapper);
   }
   else {
@@ -213,7 +210,6 @@ NukiBridge.prototype.updateFirmware = function updateFirmware(callback, doReques
       }).bind(this), Constants.REBOOT_WAIT_TIME);
     }).bind(this);
     this._sendRequest("/fwupdate", {
-      token : this.apiToken
     }, this.requestTimeoutOther, callbackWrapper);
   }
   else {
@@ -265,7 +261,6 @@ NukiBridge.prototype._lockState = function _lockState(nukiLock, callbacks /*
       }
     }).bind(this);
     this._sendRequest("/lockState", {
-      token : this.apiToken,
       nukiId : nukiLock.id,
       deviceType : nukiLock.deviceType
     }, this.requestTimeoutLockState, singleCallBack);
@@ -311,7 +306,6 @@ NukiBridge.prototype._lastKnownlockState = function _lastKnownlockState(nukiLock
       }
     }).bind(this);
     this._sendRequest("/list", {
-      token : this.apiToken
     }, this.requestTimeoutOther, singleCallBack);
   }
   else {
@@ -329,7 +323,6 @@ NukiBridge.prototype._lockAction = function _lockAction(nukiLock, lockAction, ca
   if (!this.runningRequest, doRequest) {
     this.log("Process lock action '%s' for Nuki lock '%s' (instance id '%s') on Nuki bridge '%s'.", lockAction, nukiLock.id, nukiLock.instanceId, this.bridgeUrl);
     this._sendRequest("/lockAction", {
-      token : this.apiToken,
       nukiId : nukiLock.id,
       deviceType : nukiLock.deviceType,
       action : lockAction
@@ -349,6 +342,10 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
                                                                                                              * json)
                                                                                                              */) {
   var toBridgeUrl = this.bridgeUrl;
+  if(!queryObject) {
+    queryObject = {}
+  }
+  queryObject.token  = this.apiToken;
   if (queryObject.deviceType === 2 && Constants.DUMMY_BRIDGE_FOR_OPENER === true) {
     toBridgeUrl = "http://10.0.1.108:8881";
   }
