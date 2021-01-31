@@ -96,9 +96,10 @@ This setting is usefull if you have a lock that is set to turn only 360 degrees 
 will never lock to 720. Use this setting carefully as this might not lock your lock if a wrong state is present in homebridge for any reason.
 
 ## Nuki Opener
-If you configure a Nuki opener you will get three lock accessories. One to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.
+If you configure a Nuki opener you will get three lock accessories and one button. One lock to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.
 If the lock accessory for RingToOpen is secured then RingToOpen is inactive, other wise it is active.
 If the lock accessory for ContinousMode is secured then ContinousMode is inactive, other wise it is active.
+The button can be used to deactivate doorbell ring.
 
 # Errors
 For errors on lock actions a configured number of retries with delay will be done. You can set the parameters 'lockaction_maxtries' and 'lockaction_retrydelay' to meet your needs.

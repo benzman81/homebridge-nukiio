@@ -1,3 +1,9 @@
+## 0.15.3
+
+New features:
+
+  - New button in opener to deactivate doorbell ring.
+
 ## 0.15.2
 
 New features:

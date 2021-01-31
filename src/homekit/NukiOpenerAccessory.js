@@ -38,6 +38,10 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
 
   this.doorbellService = new Service.Doorbell("Doorbell " + this.name, "Doorbell " + this.name);
 
+  this.doorbellEnablementSwitchService = new Service.Switch("Doorbell Enabled " + this.name);
+  this.doorbellEnablementSwitchService.getCharacteristic(Characteristic.On).on('get', this.getDoorbellEnabled.bind(this)).on('set', this.setDoorbellEnabled.bind(this));
+  this.doorbellEnablementSwitchService.getCharacteristic(Characteristic.On).updateValue(this._getDoorbellEnabled(), undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+
   this.battservice = new Service.BatteryService(this.name);
   this.battservice.getCharacteristic(Characteristic.BatteryLevel).on('get', this.getBattery.bind(this));
   this.battservice.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
@@ -68,7 +72,7 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
     this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryChargeState, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
     this.battservice.getCharacteristic(Characteristic.ChargingState).updateValue(newHomeKitStateBatteryCharging, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
 
-    if(ringactionState === true) {
+    if(ringactionState === true && this._getDoorbellEnabled() === true) {
       this.doorbellService.updateCharacteristic(Characteristic.ProgrammableSwitchEvent, 0);
     }
     this.log("HomeKit state change by webhook complete. New isRingToOpenLocked = '%s' and batteryCritical = '%s', battery charging = '%s', battery charge state = '%s' and mode = '%s', ringactionState = '%s'.", isRingToOpenLocked, batteryCritical, batteryCharging, batteryChargeState, mode, ringactionState);
@@ -338,8 +342,31 @@ NukiOpenerAccessory.prototype.getLowBatt = function(callback) {
   this.nukiLock.getLowBatt(getLowBattCallback);
 };
 
+NukiOpenerAccessory.prototype._getDoorbellEnabledStorageKey = function _getDoorbellEnabledStorageKey() {
+  return 'bridge-' + this.nukiBridge.bridgeUrl + '-doorbellenabled-' + this.id + '-cache';
+};
+
+NukiOpenerAccessory.prototype._getDoorbellEnabled = function() {
+  var doorbellEnabledCache = this.nukiBridge.storage.getItemSync(this._getDoorbellEnabledStorageKey());
+  if (doorbellEnabledCache === undefined) {
+    doorbellEnabledCache = true;
+  }
+  return doorbellEnabledCache;
+};
+
+NukiOpenerAccessory.prototype.getDoorbellEnabled = function(callback) {
+  this.log.debug("Getting current state for '%s'...", this.id);
+  callback(null, this._getDoorbellEnabled());
+};
+
+NukiOpenerAccessory.prototype.setDoorbellEnabled = function(enabled, callback, context) {
+  this.log("Switch state for '%s'...", this.id);
+  this.nukiBridge.storage.setItemSync(this._getDoorbellEnabledStorageKey(), enabled);
+  callback(null);
+};
+
 NukiOpenerAccessory.prototype.getServices = function() {
-  var services = [ this.lockServiceOpen, this.informationService, this.doorbellService, this.battservice ];
+  var services = [ this.lockServiceOpen, this.informationService, this.doorbellService, this.doorbellEnablementSwitchService, this.battservice ];
   if(!this.disableRingToOpen) {
     services.push(this.lockServiceRingToOpen);
   }
