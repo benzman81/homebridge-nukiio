@@ -119,7 +119,7 @@
               "type": "boolean"
             },
             "usesDoorContactSensor": {
-              "title": "Uses door sesonr",
+              "title": "Uses door sensor",
               "description": "Does your nuki use a door sensor?",
               "type": "boolean"
             },
