@@ -4,7 +4,7 @@ var crypto = require('crypto');
 
 const Constants = require('../Constants');
 
-function NukiBridge(homebridge, log, bridgeUrl, apiToken, apiTokenHashed, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
+function NukiBridge(homebridge, log, bridgeUrl, apiToken, apiTokenHashed, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort, lockactionMaxtries, lockactionRetryDelay) {
   this.log = log;
   this.bridgeUrl = bridgeUrl;
   if (this.bridgeUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
@@ -23,6 +23,8 @@ function NukiBridge(homebridge, log, bridgeUrl, apiToken, apiTokenHashed, reques
   this.lockStateMode = lockStateMode;
   this.webHookServerIpOrName = webHookServerIpOrName;
   this.webHookServerPort = webHookServerPort;
+  this.lockactionMaxtries = lockactionMaxtries;
+  this.lockactionRetryDelay = lockactionRetryDelay;
   if (this.requestTimeoutLockState == null || this.requestTimeoutLockState == "" || this.requestTimeoutLockState < 1) {
     this.requestTimeoutLockState = Constants.DEFAULT_REQUEST_TIMEOUT_LOCK_STATE;
   }
@@ -129,28 +131,45 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
 
 NukiBridge.prototype._addWebhookToBridge = function _addWebhookToBridge() {
   this.log("Adding webhook for plugin to bridge...");
-  var callbackWebhookList = (function(err, json) {
-    if (err) {
-      throw new Error("Request for webhooks failed: " + err);
+  var callbackWebhookList = (function(params, err, json) {
+    if (err && err.retryableError && params.getWebhookTry < this.lockactionMaxtries) {
+      this.log("An error occured retrieving callbacks. Will retry now...");
+      var currentWebhookTry = params.getWebhookTry;
+      params.getWebhookTry = params.getWebhookTry + 1;
+      setTimeout((function() {
+        this._getCallbacks(callbackWebhookList);
+      }).bind(this), this.lockactionRetryDelay * currentWebhookTry);
     }
-    else if (json) {
-      var callbacks = json.callbacks;
-      var webhookExists = false;
-      for (var i = 0; i < callbacks.length; i++) {
-        var callback = callbacks[i];
-        if (callback.url === this.webHookUrl) {
-          webhookExists = true;
-          break;
+    else {
+      if (err) {
+        if (params.getWebhookTry == 1) {
+          throw new Error("Request for webhooks failed: " + err);
+        }
+        else {
+          throw new Error("Request for webhooks failed after retrying multiple times: " + err);
         }
       }
-      if (webhookExists) {
-        this.log("Webhook for plugin already exists.");
-      }
-      else {
-        this._addCallback();
+      else if (json) {
+        var callbacks = json.callbacks;
+        var webhookExists = false;
+        for (var i = 0; i < callbacks.length; i++) {
+          var callback = callbacks[i];
+          if (callback.url === this.webHookUrl) {
+            //webhookExists = true;
+            break;
+          }
+        }
+        if (webhookExists) {
+          this.log("Webhook for plugin already exists.");
+        }
+        else {
+          this._addCallback();
+        }
       }
     }
-  }).bind(this);
+  }).bind(this, {
+    getWebhookTry : 1
+  });
   this._getCallbacks(callbackWebhookList);
 };
 
@@ -168,14 +187,33 @@ NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest)
 
 NukiBridge.prototype._addCallback = function _addCallback(doRequest) {
   if (!this.runningRequest && doRequest) {
-    var callback = (function(err, json) {
-      if (err) {
-        throw new Error("Adding webhook failed: " + err);
+    var callback = (function(params, err, json) {
+      if (err && err.retryableError && params.addWebhookTry < this.lockactionMaxtries) {
+        this.log("An error occured adding callback. Will retry now...");
+        var currentWebhookTry = params.addWebhookTry;
+        params.addWebhookTry = params.addWebhookTry + 1;
+        setTimeout((function() {
+          this._sendRequest("/callback/add", {
+            url : this.webHookUrl
+          }, this.requestTimeoutOther, callback);
+        }).bind(this), this.lockactionRetryDelay * currentWebhookTry);
       }
-      else {
-        this.log("Webhook for plugin added.");
+      else  {
+        if (err) {
+          if (params.getWebhookTry == 1) {
+            throw new Error("Adding webhook failed: " + err);
+          }
+          else {
+            throw new Error("Adding webhook failed after retrying multiple times: " + err);
+          }
+        }
+        else {
+          this.log("Webhook for plugin added.");
+        }
       }
-    }).bind(this);
+    }).bind(this, {
+      addWebhookTry : 1
+    });
     this._sendRequest("/callback/add", {
       url : this.webHookUrl
     }, this.requestTimeoutOther, callback);

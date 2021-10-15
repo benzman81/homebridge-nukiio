@@ -1,3 +1,9 @@
+## 0.15.4
+
+Bugfix:
+
+  - Fixed HTTP 503 Error while retrieving or adding callback by using retries.
+
 ## 0.15.3
 
 New features:

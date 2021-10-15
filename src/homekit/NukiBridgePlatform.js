@@ -23,10 +23,6 @@ function NukiBridgePlatform(log, config, homebridge) {
     return;
   }
 
-  this.nukiBridge = new NukiBridge(homebridge, this.log, bridge_url, api_token, api_token_hashed, config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"]);
-  this.locks = config["locks"] || [];
-  this.openers = config["openers"] || [];
-  this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
   this.lockactionMaxtries = config["lockaction_maxtries"];
   this.lockactionRetryDelay = config["lockaction_retrydelay"];
   if (this.lockactionMaxtries == null || this.lockactionMaxtries == "" || this.lockactionMaxtries < 0) {
@@ -35,6 +31,11 @@ function NukiBridgePlatform(log, config, homebridge) {
   if (this.lockactionRetryDelay == null || this.lockactionRetryDelay == "" || this.lockactionRetryDelay < 500) {
     this.lockactionRetryDelay = Constants.DEFAULT_DELAY_FOR_RETRY;
   }
+
+  this.nukiBridge = new NukiBridge(homebridge, this.log, bridge_url, api_token, api_token_hashed, config["request_timeout_lockstate"], config["request_timeout_lockaction"], config["request_timeout_other"], config["cache_directory"], config["lock_state_mode"], config["webhook_server_ip_or_name"], config["webhook_port"], this.lockactionMaxtries, this.lockactionRetryDelay);
+  this.locks = config["locks"] || [];
+  this.openers = config["openers"] || [];
+  this.addMaintainanceButtons = config["add_maintainance_buttons"] || false;
 };
 
 NukiBridgePlatform.prototype.accessories = function(callback) {
