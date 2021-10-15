@@ -155,7 +155,7 @@ NukiBridge.prototype._addWebhookToBridge = function _addWebhookToBridge() {
         for (var i = 0; i < callbacks.length; i++) {
           var callback = callbacks[i];
           if (callback.url === this.webHookUrl) {
-            //webhookExists = true;
+            webhookExists = true;
             break;
           }
         }
