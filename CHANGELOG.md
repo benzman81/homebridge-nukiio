@@ -1,3 +1,10 @@
+## 0.16.0
+
+New features:
+
+  - Support Nuki Smart Door.
+  - Support Nuki Smart Lock 3.0 (Pro).
+
 ## 0.15.4
 
 Bugfix:

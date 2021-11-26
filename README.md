@@ -51,7 +51,8 @@ Example config.json:
                         "usesDoorLatch" : true, // (default: false)
                         "usesDoorContactSensor" : true, // (default: false)
                         "preventLockingIfAlreadyLocked" : true, // (default: false)
-                        "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
+                        "priority" : 1, // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
+                        "deviceType" : 0 // (default: 0, 0 = Nuki Smart Lock 1.0/2.0, 3 = Nuki Smart Door, 4 = Nuki Smart Lock 3.0 (Pro))
                     }
                 ],
                 "openers": [

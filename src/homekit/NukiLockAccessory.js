@@ -16,7 +16,11 @@ function NukiLockAccessory(ServiceParam, CharacteristicParam, log, config, nukiB
   this.preventLockingIfAlreadyLocked = config["preventLockingIfAlreadyLocked"] === true || false;
   this.nukiBridge = nukiBridge;
   this.nukiBridgePlatform = nukiBridgePlatform;
-  this.deviceType = 0;
+  this.deviceType = config["deviceType"];
+
+  if (this.deviceType == null || this.deviceType == "") {
+    this.deviceType = 0;
+  }
 
   this.services = [];
 
