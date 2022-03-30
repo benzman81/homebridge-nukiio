@@ -112,6 +112,7 @@ NukiLock.prototype.unlock = function unlock(callback) {
     }
     callback(err, json);
   }).bind(this);
+  this.log("Temp debug log: function unlock called.");
   this.nukiBridge._lockAction(this, this.unlockAction, callbackWrapper);
 };
 
@@ -122,6 +123,7 @@ NukiLock.prototype.unlatch = function unlatch(callback) {
     }
     callback(err, json);
   }).bind(this);
+  this.log("Temp debug log: function unlatch called.");
   this.nukiBridge._lockAction(this, this.unlatchAction, callbackWrapper);
 };
 

@@ -360,6 +360,7 @@ NukiBridge.prototype._lockAction = function _lockAction(nukiLock, lockAction, ca
                                                                                          * (err,
                                                                                          * json)
                                                                                          */, doRequest) {
+  this.log("Temp debug log: function _lockAction called: doRequest: '%s', runningRequest: '%s'.",this.runningRequest, doRequest);
   if (!this.runningRequest, doRequest) {
     this.log("Process lock action '%s' for Nuki lock '%s' (instance id '%s') on Nuki bridge '%s'.", lockAction, nukiLock.id, nukiLock.instanceId, this.bridgeUrl);
     this._sendRequest("/lockAction", {
@@ -369,6 +370,7 @@ NukiBridge.prototype._lockAction = function _lockAction(nukiLock, lockAction, ca
     }, this.requestTimeoutLockAction, callback);
   }
   else {
+    this.log("Temp debug log: function _lockAction called: added to queue");
     this._addToQueue({
       nukiLock : nukiLock,
       lockAction : lockAction,
