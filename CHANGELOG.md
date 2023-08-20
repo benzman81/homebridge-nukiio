@@ -1,3 +1,7 @@
+## 0.16.1
+
+Added some temporary logging.
+
 ## 0.16.0
 
 New features:
