@@ -1,6 +1,8 @@
-**NOTE: Since version 0.10.0 Only two locks are exposed. One that just does lock/unlock (without pulling the latch), and one that always is 
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
+**NOTE: Since version 0.10.0 Only two locks are exposed. One that just does lock/unlock (without pulling the latch), and one that always is
 displayed as locked and pulls the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
-could be done using scenes. Since one lock was removed you need to adapt your existing scenes that used this lock. You will now also get a switch in
+could be done using scenes. Since one lock was removed you need to adapt your existing scenes/automations that used this lock. You will now also get a switch in
 the lock to enable/disbale unlatching, so you can use automations to switch to desired state (i.e. based on location or time). This was implemented
 to prevent accidental unlatch of door.**
 
@@ -31,10 +33,11 @@ Example config.json:
                 "platform": "NukiBridge",
                 "bridge_url": "your-nuki-bridge-url",
                 "api_token" : "your-nuki-api-token",
-                "request_timeout_lockstate": 5000, // (in ms, optional, default: 15000)
-                "request_timeout_lockaction": 30000, // (in ms, optional, default: 45000)
-                "request_timeout_other": 10000, // (in ms, optional, default: 15000)
-                "cache_directory": "./.node-persist/storage", // (optional, default: "./.node-persist/storage")
+                "api_token_hashed": true, // (optional, default: false)
+                "request_timeout_lockstate": 30000, // (in ms, optional, default: 15000)
+                "request_timeout_lockaction": 60000, // (in ms, optional, default: 45000)
+                "request_timeout_other": 30000, // (in ms, optional, default: 15000)
+                "cache_directory": ".myFolder/.node-persist/storage", // (optional, default is in hombridge storage path '.homebridge-nukiio')
                 "webhook_server_ip_or_name": "xxx.xxx.xxx.xxx", // (optional, must be the IP/Hostname of the server running homebridge)
                 "webhook_port": 51827, // (optional, default: 51827, must be a free port on the server running homebridge, NOT the same as homebridge)
                 "lock_state_mode": 0, // (see below, optional, default: 0)
@@ -46,19 +49,27 @@ Example config.json:
                         "id": "your-lock-nukiid",
                         "name": "Front Door",
                         "usesDoorLatch" : true, // (default: false)
-                        "priority" : 1 // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
+                        "usesDoorContactSensor" : true, // (default: false)
+                        "preventLockingIfAlreadyLocked" : true, // (default: false)
+                        "priority" : 1, // (optional, default: 99 [locks with higher priority {lower number} will be proccessed first])
+                        "deviceType" : 0 // (default: 0, 0 = Nuki Smart Lock 1.0/2.0, 3 = Nuki Smart Door, 4 = Nuki Smart Lock 3.0 (Pro))
                     }
                 ],
                 "openers": [
                     {
                         "id": "your-opener-nukiid",
                         "name": "Main Opener",
+                        "disableRingToOpen": false,
+                        "disableContinuousMode": false,
                         "priority" : 1 // (optional, default: 99 [openers with higher priority {lower number} will be proccessed first])
                     }
                 ]
             }
         ]
     }
+
+## Cache directory storage (cache_directory)
+The cache directory is used to cache the state of the locks. It must point to a **valid** and **empty** directory and the user that runs homebridge must have **write access**.
 
 ## Configure lock state mode
 You can choose one of the following values to determine how to retrieve the state of the locks:
@@ -81,10 +92,15 @@ pulling the door latch ("lockname") and one that always is displayed as locked a
 You will now also get a switch in the lock to enable/disbale unlatching so you can use automations to switch to desired state (i.e. based on location or time).
 This was implemented to prevent accidental unlatch of door.
 
+## preventLockingIfAlreadyLocked
+This setting is usefull if you have a lock that is set to turn only 360 degrees instead of 720. Setting preventLockingIfAlreadyLocked to true avoids a second lock action so that the lock
+will never lock to 720. Use this setting carefully as this might not lock your lock if a wrong state is present in homebridge for any reason.
+
 ## Nuki Opener
-If you configure a Nuki opener you will get three lock accessories. One to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.
+If you configure a Nuki opener you will get three lock accessories and one button. One lock to open the door, one to de/activate RingToOpen and one to de/activate ContinousMode.
 If the lock accessory for RingToOpen is secured then RingToOpen is inactive, other wise it is active.
 If the lock accessory for ContinousMode is secured then ContinousMode is inactive, other wise it is active.
+The button can be used to deactivate doorbell ring.
 
 # Errors
 For errors on lock actions a configured number of retries with delay will be done. You can set the parameters 'lockaction_maxtries' and 'lockaction_retrydelay' to meet your needs.

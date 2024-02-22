@@ -11,6 +11,8 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
   this.log = log;
   this.id = config["id"];
   this.name = config["name"];
+  this.disableRingToOpen = config["disableRingToOpen"] === true || false;
+  this.disableContinuousMode = config["disableContinuousMode"] === true || false;
   this.nukiBridge = nukiBridge;
   this.nukiBridgePlatform = nukiBridgePlatform;
   this.deviceType = 2;
@@ -22,37 +24,58 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
   this.lockServiceOpen.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateAlwaysUnlatch.bind(this));
   this.lockServiceOpen.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateAlwaysUnlatch.bind(this)).on('set', this.setStateAlwaysUnlatch.bind(this));
 
-  this.lockServiceRingToOpen = new Service.LockMechanism("Ring To Open " + this.name, "Ring To Open " + this.name);
-  this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateRingToOpen.bind(this));
-  this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateRingToOpen.bind(this)).on('set', this.setState.bind(this, "unlock"));
+  if(!this.disableRingToOpen) {
+    this.lockServiceRingToOpen = new Service.LockMechanism("Ring To Open " + this.name, "Ring To Open " + this.name);
+    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateRingToOpen.bind(this));
+    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateRingToOpen.bind(this)).on('set', this.setState.bind(this, "unlock"));
+  }
 
-  this.lockServiceContinuousMode = new Service.LockMechanism("Continous Mode " + this.name, "Continous Mode " + this.name);
-  this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateContinuousMode.bind(this));
-  this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateContinuousMode.bind(this)).on('set', this.setState.bind(this, "lockngo"));
+  if(!this.disableContinuousMode) {
+    this.lockServiceContinuousMode = new Service.LockMechanism("Continous Mode " + this.name, "Continous Mode " + this.name);
+    this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateContinuousMode.bind(this));
+    this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateContinuousMode.bind(this)).on('set', this.setState.bind(this, "lockngo"));
+  }
+
+  this.doorbellService = new Service.Doorbell("Doorbell " + this.name, "Doorbell " + this.name);
+
+  this.doorbellEnablementSwitchService = new Service.Switch("Doorbell Enabled " + this.name);
+  this.doorbellEnablementSwitchService.getCharacteristic(Characteristic.On).on('get', this.getDoorbellEnabled.bind(this)).on('set', this.setDoorbellEnabled.bind(this));
+  this.doorbellEnablementSwitchService.getCharacteristic(Characteristic.On).updateValue(this._getDoorbellEnabled(), undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
 
   this.battservice = new Service.BatteryService(this.name);
   this.battservice.getCharacteristic(Characteristic.BatteryLevel).on('get', this.getBattery.bind(this));
   this.battservice.getCharacteristic(Characteristic.ChargingState).on('get', this.getCharging.bind(this));
   this.battservice.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getLowBatt.bind(this));
 
-  var webHookCallback = (function(isRingToOpenLocked, batteryCritical, mode) {
+  var webHookCallback = (function(isRingToOpenLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode, ringactionState) {
     var isContinuousMode = mode === 3;
-    var newHomeKitStateContinuousMode = isContinuousMode ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
-    var newHomeKitStateContinuousModeTarget = isContinuousMode ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED;
-    this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateContinuousMode, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-    this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateContinuousModeTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    if(!this.disableContinuousMode) {
+      var newHomeKitStateContinuousMode = isContinuousMode ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
+      var newHomeKitStateContinuousModeTarget = isContinuousMode ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED;
+      this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateContinuousMode, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+      this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateContinuousModeTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    }
 
     if (isContinuousMode) {
       isRingToOpenLocked = false;
     }
-    var newHomeKitStateRingToOpenLocked = isRingToOpenLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-    var newHomeKitStateRingToOpenLockedTarget = isRingToOpenLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateRingToOpenLocked, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateRingToOpenLockedTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    if(!this.disableRingToOpen) {
+      var newHomeKitStateRingToOpenLocked = isRingToOpenLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+      var newHomeKitStateRingToOpenLockedTarget = isRingToOpenLocked ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+      this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitStateRingToOpenLocked, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+      this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateRingToOpenLockedTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    }
 
     var newHomeKitStateBatteryCritical = batteryCritical ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    var newHomeKitStateBatteryCharging = batteryCharging ? Characteristic.ChargingState.CHARGING : Characteristic.ChargingState.NOT_CHARGING;
     this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(newHomeKitStateBatteryCritical, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-    this.log("HomeKit state change by webhook complete. New isRingToOpenLocked = '%s' and batteryCritical = '%s' and mode = '%s'.", isRingToOpenLocked, batteryCritical, mode);
+    this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryChargeState, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+    this.battservice.getCharacteristic(Characteristic.ChargingState).updateValue(newHomeKitStateBatteryCharging, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+
+    if(ringactionState === true && this._getDoorbellEnabled() === true) {
+      this.doorbellService.updateCharacteristic(Characteristic.ProgrammableSwitchEvent, 0);
+    }
+    this.log("HomeKit state change by webhook complete. New isRingToOpenLocked = '%s' and batteryCritical = '%s', battery charging = '%s', battery charge state = '%s' and mode = '%s', ringactionState = '%s'.", isRingToOpenLocked, batteryCritical, batteryCharging, batteryChargeState, mode, ringactionState);
   }).bind(this);
 
   this.nukiLock = new NukiLock(this.log, nukiBridge, this.id, config["priority"], this.deviceType, webHookCallback);
@@ -60,21 +83,32 @@ function NukiOpenerAccessory(ServiceParam, CharacteristicParam, log, config, nuk
   // no notification when homebridge start/restart, set LockCurrentState and
   // LockTargetState before first getState
 
-  var isRingToOpenLockedCached = this.nukiLock.getIsLockedCached();
-  var lastHomeKitStateRingToOpenCached = isRingToOpenLockedCached ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-  var lastHomeKitStateRingToOpenTargetCached = isRingToOpenLockedCached ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-  this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(lastHomeKitStateRingToOpenTargetCached, undefined, null);
-  this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateRingToOpenCached, undefined, null);
+  if(!this.disableRingToOpen) {
+    var isRingToOpenLockedCached = this.nukiLock.getIsLockedCached();
+    var lastHomeKitStateRingToOpenCached = isRingToOpenLockedCached ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+    var lastHomeKitStateRingToOpenTargetCached = isRingToOpenLockedCached ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
+    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(lastHomeKitStateRingToOpenTargetCached, undefined, null);
+    this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateRingToOpenCached, undefined, null);
+  }
 
   var modeCached = this.nukiLock.getModeCached();
   var isContinuousModeCached = modeCached === 3;
-  var lastHomeKitStateContinuousModeCached = isContinuousModeCached ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
-  var lastHomeKitStateContinuousModeTargetCached = isContinuousModeCached ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED;
-  this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(lastHomeKitStateContinuousModeTargetCached, undefined, null);
-  this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateContinuousModeCached, undefined, null);
+  if(!this.disableContinuousMode) {
+    var lastHomeKitStateContinuousModeCached = isContinuousModeCached ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED;
+    var lastHomeKitStateContinuousModeTargetCached = isContinuousModeCached ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED;
+    this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(lastHomeKitStateContinuousModeTargetCached, undefined, null);
+    this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(lastHomeKitStateContinuousModeCached, undefined, null);
+  }
 
   this.lockServiceOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
   this.lockServiceOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
+
+  var isBatteryLowCached = this.nukiLock.getIsBatteryLowCached();
+  var batteryChargingCached = this.nukiLock.getBatteryChargingCached();
+  var batteryChargeStateCached = this.nukiLock.getBatteryChargeStateCached();
+  this.battservice.getCharacteristic(Characteristic.StatusLowBattery).updateValue(isBatteryLowCached ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL, undefined, null);
+  this.battservice.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryChargeStateCached, undefined, null);
+  this.battservice.getCharacteristic(Characteristic.ChargingState).updateValue(batteryChargingCached ? Characteristic.ChargingState.CHARGING : Characteristic.ChargingState.NOT_CHARGING, undefined, null);
 };
 
 NukiOpenerAccessory.prototype.getStateRingToOpen = function(callback) {
@@ -159,14 +193,16 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
     var isContinuousModeCached = modeCached === 3;
     if (isContinuousModeCached) {
       if (doLock) {
-        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
-        this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
         callback(null);
-        setTimeout((function() {
-          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.UNSECURED, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.UNSECURED, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-          this.log("HomeKit change for ring to open back to unlock state complete as continous mode is still active.");
-        }).bind(this), 1000);
+        if(!this.disableRingToOpen) {
+          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.SECURED, undefined, null);
+          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED, undefined, null);
+          setTimeout((function() {
+            this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(Characteristic.LockTargetState.UNSECURED, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+            this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.UNSECURED, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+            this.log("HomeKit change for ring to open back to unlock state complete as continous mode is still active.");
+          }).bind(this), 1000);
+        }
       }
       else {
         callback(null);
@@ -177,17 +213,21 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
 
   var updateStates = (function(unlockType, doLock, newHomeKitState, newHomeKitStateTarget) {
     if (unlockType === "lockngo") {
-      this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
-      this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+      if(!this.disableContinuousMode) {
+        this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
+        this.lockServiceContinuousMode.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
+      }
       if (!doLock || this.nukiLock.getIsLockedCached()) {
-        setTimeout((function() {
-          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-          this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
-          this.log("HomeKit change for ring to open back to unlock state complete as continous mode is still active.");
-        }).bind(this), 1000);
+        if(!this.disableRingToOpen) {
+          setTimeout((function() {
+            this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+            this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, Constants.CONTEXT_FROM_NUKI_BACKGROUND);
+            this.log("HomeKit change for ring to open back to unlock state complete as continous mode is still active.");
+          }).bind(this), 1000);
+        }
       }
     }
-    else {
+    else if(!this.disableRingToOpen) {
       this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
       this.lockServiceRingToOpen.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
     }
@@ -264,11 +304,29 @@ NukiOpenerAccessory.prototype.setState = function(unlockType, homeKitState, call
 };
 
 NukiOpenerAccessory.prototype.getBattery = function(callback) {
-  callback(null, 100);
+  var getChargeStateCallback = (function(err, chargeState) {
+    if (err) {
+      this.log("An error occured retrieving battery status. Reason: %s", err);
+      callback(err);
+    }
+    else {
+      callback(null, chargeState);
+    }
+  }).bind(this);
+  this.nukiLock.getChargeState(getChargeStateCallback);
 };
 
 NukiOpenerAccessory.prototype.getCharging = function(callback) {
-  callback(null, Characteristic.ChargingState.NOT_CHARGEABLE);
+  var getChargingCallback = (function(err, charging) {
+    if (err) {
+      this.log("An error occured retrieving battery status. Reason: %s", err);
+      callback(err);
+    }
+    else {
+      callback(null, charging ? Characteristic.ChargingState.CHARGING : Characteristic.ChargingState.NOT_CHARGING);
+    }
+  }).bind(this);
+  this.nukiLock.getCharging(getChargingCallback);
 };
 
 NukiOpenerAccessory.prototype.getLowBatt = function(callback) {
@@ -284,8 +342,38 @@ NukiOpenerAccessory.prototype.getLowBatt = function(callback) {
   this.nukiLock.getLowBatt(getLowBattCallback);
 };
 
+NukiOpenerAccessory.prototype._getDoorbellEnabledStorageKey = function _getDoorbellEnabledStorageKey() {
+  return 'bridge-' + this.nukiBridge.bridgeUrl + '-doorbellenabled-' + this.id + '-cache';
+};
+
+NukiOpenerAccessory.prototype._getDoorbellEnabled = function() {
+  var doorbellEnabledCache = this.nukiBridge.storage.getItemSync(this._getDoorbellEnabledStorageKey());
+  if (doorbellEnabledCache === undefined) {
+    doorbellEnabledCache = true;
+  }
+  return doorbellEnabledCache;
+};
+
+NukiOpenerAccessory.prototype.getDoorbellEnabled = function(callback) {
+  this.log.debug("Getting current state for '%s'...", this.id);
+  callback(null, this._getDoorbellEnabled());
+};
+
+NukiOpenerAccessory.prototype.setDoorbellEnabled = function(enabled, callback, context) {
+  this.log("Switch state for '%s'...", this.id);
+  this.nukiBridge.storage.setItemSync(this._getDoorbellEnabledStorageKey(), enabled);
+  callback(null);
+};
+
 NukiOpenerAccessory.prototype.getServices = function() {
-  return [ this.lockServiceOpen, this.lockServiceRingToOpen, this.lockServiceContinuousMode, this.informationService, this.battservice ];
+  var services = [ this.lockServiceOpen, this.informationService, this.doorbellService, this.doorbellEnablementSwitchService, this.battservice ];
+  if(!this.disableRingToOpen) {
+    services.push(this.lockServiceRingToOpen);
+  }
+  if(!this.disableContinuousMode) {
+    services.push(this.lockServiceContinuousMode);
+  }
+  return services;
 };
 
 module.exports = NukiOpenerAccessory;

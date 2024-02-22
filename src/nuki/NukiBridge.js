@@ -1,9 +1,10 @@
 var request = require("request");
 var http = require('http');
+var crypto = require('crypto');
 
 const Constants = require('../Constants');
 
-function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort) {
+function NukiBridge(homebridge, log, bridgeUrl, apiToken, apiTokenHashed, requestTimeoutLockState, requestTimeoutLockAction, requestTimeoutOther, cacheDirectory, lockStateMode, webHookServerIpOrName, webHookServerPort, lockactionMaxtries, lockactionRetryDelay) {
   this.log = log;
   this.bridgeUrl = bridgeUrl;
   if (this.bridgeUrl.toLowerCase().lastIndexOf("http://", 0) === -1) {
@@ -14,6 +15,7 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
   }
   this.log("Initializing Nuki bridge '%s'...", this.bridgeUrl);
   this.apiToken = apiToken;
+  this.apiTokenHashed = apiTokenHashed;
   this.requestTimeoutLockState = requestTimeoutLockState;
   this.requestTimeoutLockAction = requestTimeoutLockAction;
   this.requestTimeoutOther = requestTimeoutOther;
@@ -21,6 +23,8 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
   this.lockStateMode = lockStateMode;
   this.webHookServerIpOrName = webHookServerIpOrName;
   this.webHookServerPort = webHookServerPort;
+  this.lockactionMaxtries = lockactionMaxtries;
+  this.lockactionRetryDelay = lockactionRetryDelay;
   if (this.requestTimeoutLockState == null || this.requestTimeoutLockState == "" || this.requestTimeoutLockState < 1) {
     this.requestTimeoutLockState = Constants.DEFAULT_REQUEST_TIMEOUT_LOCK_STATE;
   }
@@ -31,7 +35,7 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
     this.requestTimeoutOther = Constants.DEFAULT_REQUEST_TIMEOUT_OTHER;
   }
   if (this.cacheDirectory == null || this.cacheDirectory == "") {
-    this.cacheDirectory = Constants.DEFAULT_CACHE_DIRECTORY;
+    this.cacheDirectory = homebridge.user.storagePath() + "/" + Constants.DEFAULT_CACHE_DIRECTORY_NAME;
   }
   if (this.lockStateMode == null || this.lockStateMode == "") {
     this.lockStateMode = Constants.LOCK_STATE_MODE_REQUEST_LOCKSTATE;
@@ -41,7 +45,7 @@ function NukiBridge(log, bridgeUrl, apiToken, requestTimeoutLockState, requestTi
   }
 
   if ((this.webHookServerIpOrName == null || this.webHookServerIpOrName == "") && this.lockStateMode === Constants.LOCK_STATE_MODE_ONLY_CACHE) {
-    throw new Error("Lock state mode 1 can only be used with webhooks configured. Yout need to enter a valid webhook server ip/name or use lock state mode 0.");
+    this.log("Lock state mode 1 can only be used with webhooks configured. Yout need to enter a valid webhook server ip/name or use lock state mode 0 otherwise no lock state change will be recognized.");
   }
 
   this.storage = require('node-persist');
@@ -95,7 +99,11 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
         var nukiId = json.nukiId + "";
         var state = json.state;
         var batteryCritical = json.batteryCritical === true || json.batteryCritical === "true";
+        var batteryCharging = json.batteryCharging === true || json.batteryCharging === "true";
+        var batteryChargeState = json.batteryChargeState ? json.batteryChargeState: batteryCritical ? Constants.BATTERY_LOW : Constants.BATTERY_FULL;
+        var contactClosed =  json.doorsensorState !== 3;
         var mode = json.mode;
+        var ringactionState = json.ringactionState === true || json.ringactionState === "true";
         var lock = this._getLock(nukiId);
         if (lock == null) {
           response.setHeader("Content-Type", "text/plain");
@@ -109,9 +117,9 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
             success : true
           };
           var isLocked = lock._isLocked(state);
-          lock._setLockCache(isLocked, batteryCritical, mode);
-          log("[INFO Nuki WebHook Server] Updated lock state from webhook to isLocked = '%s' (Nuki state '%s' ) for lock '%s' (instance id '%s') with batteryCritical = '%s' and mode = '%s'.", isLocked, state, lock.id, lock.instanceId, batteryCritical, mode);
-          lock.webHookCallback(isLocked, batteryCritical, mode);
+          lock._setLockCache(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode);
+          log("[INFO Nuki WebHook Server] Updated lock state from webhook to isLocked = '%s' (Nuki state '%s' ) for lock '%s' (instance id '%s') with batteryCritical = '%s', battery charging = '%s', battery charge state = '%s', contactClosed = '%s' and mode = '%s', ringactionState = '%s'.", isLocked, state, lock.id, lock.instanceId, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode, ringactionState);
+          lock.webHookCallback(isLocked, batteryCritical, batteryCharging, batteryChargeState, contactClosed, mode, ringactionState);
           response.write(JSON.stringify(responseBody));
           response.end();
         }
@@ -123,35 +131,51 @@ NukiBridge.prototype._createWebHookServer = function _createWebHookServer(log, w
 
 NukiBridge.prototype._addWebhookToBridge = function _addWebhookToBridge() {
   this.log("Adding webhook for plugin to bridge...");
-  var callbackWebhookList = (function(err, json) {
-    if (err) {
-      throw new Error("Request for webhooks failed: " + err);
+  var callbackWebhookList = (function(params, err, json) {
+    if (err && err.retryableError && params.getWebhookTry < this.lockactionMaxtries) {
+      this.log("An error occured retrieving callbacks. Will retry now...");
+      var currentWebhookTry = params.getWebhookTry;
+      params.getWebhookTry = params.getWebhookTry + 1;
+      setTimeout((function() {
+        this._getCallbacks(callbackWebhookList);
+      }).bind(this), this.lockactionRetryDelay * currentWebhookTry);
     }
-    else if (json) {
-      var callbacks = json.callbacks;
-      var webhookExists = false;
-      for (var i = 0; i < callbacks.length; i++) {
-        var callback = callbacks[i];
-        if (callback.url === this.webHookUrl) {
-          webhookExists = true;
-          break;
+    else {
+      if (err) {
+        if (params.getWebhookTry == 1) {
+          throw new Error("Request for webhooks failed: " + err);
+        }
+        else {
+          throw new Error("Request for webhooks failed after retrying multiple times: " + err);
         }
       }
-      if (webhookExists) {
-        this.log("Webhook for plugin already exists.");
-      }
-      else {
-        this._addCallback();
+      else if (json) {
+        var callbacks = json.callbacks;
+        var webhookExists = false;
+        for (var i = 0; i < callbacks.length; i++) {
+          var callback = callbacks[i];
+          if (callback.url === this.webHookUrl) {
+            webhookExists = true;
+            break;
+          }
+        }
+        if (webhookExists) {
+          this.log("Webhook for plugin already exists.");
+        }
+        else {
+          this._addCallback();
+        }
       }
     }
-  }).bind(this);
+  }).bind(this, {
+    getWebhookTry : 1
+  });
   this._getCallbacks(callbackWebhookList);
 };
 
 NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest) {
   if (!this.runningRequest && doRequest) {
     this._sendRequest("/callback/list", {
-      token : this.apiToken
     }, this.requestTimeoutOther, callback);
   }
   else {
@@ -163,16 +187,34 @@ NukiBridge.prototype._getCallbacks = function _getCallbacks(callback, doRequest)
 
 NukiBridge.prototype._addCallback = function _addCallback(doRequest) {
   if (!this.runningRequest && doRequest) {
-    var callback = (function(err, json) {
-      if (err) {
-        throw new Error("Adding webhook failed: " + err);
+    var callback = (function(params, err, json) {
+      if (err && err.retryableError && params.addWebhookTry < this.lockactionMaxtries) {
+        this.log("An error occured adding callback. Will retry now...");
+        var currentWebhookTry = params.addWebhookTry;
+        params.addWebhookTry = params.addWebhookTry + 1;
+        setTimeout((function() {
+          this._sendRequest("/callback/add", {
+            url : this.webHookUrl
+          }, this.requestTimeoutOther, callback);
+        }).bind(this), this.lockactionRetryDelay * currentWebhookTry);
       }
-      else {
-        this.log("Webhook for plugin added.");
+      else  {
+        if (err) {
+          if (params.getWebhookTry == 1) {
+            throw new Error("Adding webhook failed: " + err);
+          }
+          else {
+            throw new Error("Adding webhook failed after retrying multiple times: " + err);
+          }
+        }
+        else {
+          this.log("Webhook for plugin added.");
+        }
       }
-    }).bind(this);
+    }).bind(this, {
+      addWebhookTry : 1
+    });
     this._sendRequest("/callback/add", {
-      token : this.apiToken,
       url : this.webHookUrl
     }, this.requestTimeoutOther, callback);
   }
@@ -191,7 +233,6 @@ NukiBridge.prototype.reboot = function reboot(callback, doRequest) {
       }).bind(this), Constants.REBOOT_WAIT_TIME);
     }).bind(this);
     this._sendRequest("/reboot", {
-      token : this.apiToken
     }, this.requestTimeoutOther, callbackWrapper);
   }
   else {
@@ -209,7 +250,6 @@ NukiBridge.prototype.updateFirmware = function updateFirmware(callback, doReques
       }).bind(this), Constants.REBOOT_WAIT_TIME);
     }).bind(this);
     this._sendRequest("/fwupdate", {
-      token : this.apiToken
     }, this.requestTimeoutOther, callbackWrapper);
   }
   else {
@@ -261,7 +301,6 @@ NukiBridge.prototype._lockState = function _lockState(nukiLock, callbacks /*
       }
     }).bind(this);
     this._sendRequest("/lockState", {
-      token : this.apiToken,
       nukiId : nukiLock.id,
       deviceType : nukiLock.deviceType
     }, this.requestTimeoutLockState, singleCallBack);
@@ -307,7 +346,6 @@ NukiBridge.prototype._lastKnownlockState = function _lastKnownlockState(nukiLock
       }
     }).bind(this);
     this._sendRequest("/list", {
-      token : this.apiToken
     }, this.requestTimeoutOther, singleCallBack);
   }
   else {
@@ -322,16 +360,17 @@ NukiBridge.prototype._lockAction = function _lockAction(nukiLock, lockAction, ca
                                                                                          * (err,
                                                                                          * json)
                                                                                          */, doRequest) {
+  this.log("Temp debug log: function _lockAction called: doRequest: '%s', runningRequest: '%s'.",this.runningRequest, doRequest);
   if (!this.runningRequest, doRequest) {
     this.log("Process lock action '%s' for Nuki lock '%s' (instance id '%s') on Nuki bridge '%s'.", lockAction, nukiLock.id, nukiLock.instanceId, this.bridgeUrl);
     this._sendRequest("/lockAction", {
-      token : this.apiToken,
       nukiId : nukiLock.id,
       deviceType : nukiLock.deviceType,
       action : lockAction
     }, this.requestTimeoutLockAction, callback);
   }
   else {
+    this.log("Temp debug log: function _lockAction called: added to queue");
     this._addToQueue({
       nukiLock : nukiLock,
       lockAction : lockAction,
@@ -345,6 +384,22 @@ NukiBridge.prototype._sendRequest = function _sendRequest(entryPoint, queryObjec
                                                                                                              * json)
                                                                                                              */) {
   var toBridgeUrl = this.bridgeUrl;
+  if(!queryObject) {
+    queryObject = {}
+  }
+  if(this.apiTokenHashed === true) {
+    var currentTs = new Date().toISOString().replace(/[.]\d+/, '');
+    var randomNum = Math.floor(Math.random() * 65535) + 1 ;
+    var toHash = currentTs+","+randomNum+","+this.apiToken;
+    var hash = crypto.createHash('sha256').update(toHash).digest('hex');
+    queryObject.ts  = currentTs;
+    queryObject.rnr  = randomNum;
+    queryObject.hash  = hash;
+  }
+  else {
+    queryObject.token  = this.apiToken;
+  }
+
   if (queryObject.deviceType === 2 && Constants.DUMMY_BRIDGE_FOR_OPENER === true) {
     toBridgeUrl = "http://10.0.1.108:8881";
   }

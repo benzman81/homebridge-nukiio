@@ -1,3 +1,91 @@
+## 0.16.1
+
+Added some temporary logging.
+
+## 0.16.0
+
+New features:
+
+  - Support Nuki Smart Door.
+  - Support Nuki Smart Lock 3.0 (Pro).
+
+## 0.15.4
+
+Bugfix:
+
+  - Fixed HTTP 503 Error while retrieving or adding callback by using retries.
+
+## 0.15.3
+
+New features:
+
+  - New button in opener to deactivate doorbell ring.
+
+## 0.15.2
+
+New features:
+
+  - New setting for sending hashed token instead of plaintext.
+
+## 0.15.1
+
+New features:
+
+  - New setting for locks preventLockingIfAlreadyLocked.
+
+## 0.15.0
+
+New features:
+
+  - Support Nuki Opener ringactionState in callback as doorbell.
+
+## 0.14.0
+
+New features:
+
+  - Support Nuki battery charging and battery charging state (needs bridge firmware version 2.7.0 or 1.17.0 and smart lock firmware version 2.8.1/1.10.0).
+
+## 0.13.2
+
+Bugfix:
+
+  - Fixed Config UI X schema file to not generate lock or opener for empty config.
+  - Fixed that homebrige crashes if there is invalid config.
+
+## 0.13.1
+
+New features:
+
+  - Now the cache by default is stored in hombridge storage path '.homebridge-nukiio'.
+
+Bugfix:
+
+  - Fixed Config UI X schema file.
+
+## 0.13.0
+
+New features:
+
+  - Support Config UI X.
+
+## 0.12.0
+
+New features:
+
+  - Make lock "ring to open" and "continuous mode" optional.
+
+## 0.11.1
+
+Bugfix:
+
+  - Fixed battery status after homebridge restart.
+
+## 0.11.0
+
+New features:
+
+  - Added door contact sensor support for Nuki 2.0 (needs bridge firmware version 2.6.0 or 1.16.0).
+
 ## 0.10.0
 
 New features:
@@ -7,10 +95,10 @@ New features:
 
 Feature changes and removal:
 
-  - Door latch handling changed. If you define usesDoorLatch = true you will no longer get three locks, but only two. 
+  - Door latch handling changed. If you define usesDoorLatch = true you will no longer get three locks, but only two.
     One that just does lock/unlock (without pulling the latch), and one that always is displayed as locked and pulls
     the door latch on unlock. This way done from personal experience where only these two are only needed. Other behavoirs
-    could be done using scenes. Since one lock was removed you need to adapt your existing scenes that used this lock.
+    could be done using scenes. Since one lock was removed you need to adapt your existing scenes/automations that used this lock.
 
 ## 0.9.0
 
